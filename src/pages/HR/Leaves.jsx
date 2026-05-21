@@ -1,0 +1,385 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Users,
+  Plane,
+  ClipboardList,
+  Calendar,
+  AlertTriangle,
+  Sparkles,
+  Sliders,
+  Plus,
+  Search,
+  CheckCircle,
+  XCircle,
+  Clock,
+  ChevronLeft,
+  ChevronRight
+} from 'lucide-react';
+import { DatabaseService } from '../../services/api';
+
+export default function HRLeaves({
+  triggerToast
+}) {
+  const [requests, setRequests] = useState([]);
+  const [policies, setPolicies] = useState([]);
+  const [calendarStatus, setCalendarStatus] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Fetch data asynchronously on mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const data = await DatabaseService.getHRLeaves();
+        setRequests(data.requests);
+        setPolicies(data.policies);
+        setCalendarStatus(data.calendarStatus || {});
+      } catch (err) {
+        triggerToast('Failed to connect to database schema.', 'error');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
+  const handleAction = async (id, name, action) => {
+    try {
+      // Optimistic state resolution
+      setRequests(requests.filter(r => r.id !== id));
+      triggerToast(
+        action === 'approve' 
+          ? `Approved leave request for ${name}` 
+          : `Rejected leave request for ${name}`, 
+        action === 'approve' ? 'success' : 'error'
+      );
+      
+      // Async database persistence
+      await DatabaseService.resolveLeaveRequest(id, action);
+    } catch (err) {
+      triggerToast('Failed to synchronize status with schema cache.', 'error');
+    }
+  };
+
+  const handleAddNewPolicy = async () => {
+    try {
+      const demoPolicy = {
+        name: 'Unpaid Sabbatical',
+        desc: 'Exceptional Approvals',
+        val: '30',
+        unit: 'days cap'
+      };
+      const updated = await DatabaseService.addLeavePolicy(demoPolicy);
+      setPolicies(updated);
+      triggerToast('Sabbatical leave policy registered successfully!');
+    } catch (err) {
+      triggerToast('Error updating policy schemes.', 'error');
+    }
+  };
+
+  const filteredRequests = requests.filter(r => 
+    r.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    r.type.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Premium Shimmer Loading Skeleton
+  if (loading) {
+    return (
+      <div className="space-y-6 animate-pulse">
+        {/* Search bar skeleton */}
+        <div className="h-10 bg-slate-200 dark:bg-slate-800 rounded-xl w-full max-w-xl"></div>
+        
+        {/* Top metric row skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-24 bg-slate-100 dark:bg-slate-900 border border-slate-200/40 dark:border-slate-800/40 rounded-3xl"></div>
+          ))}
+        </div>
+        
+        {/* Content split skeleton */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div className="xl:col-span-2 space-y-4">
+            <div className="h-6 bg-slate-200 dark:bg-slate-800 rounded w-1/4"></div>
+            <div className="h-48 bg-slate-100 dark:bg-slate-900 rounded-3xl"></div>
+            <div className="h-48 bg-slate-100 dark:bg-slate-900 rounded-3xl"></div>
+          </div>
+          <div className="space-y-6">
+            <div className="h-64 bg-slate-100 dark:bg-slate-900 rounded-3xl"></div>
+            <div className="h-48 bg-slate-100 dark:bg-slate-900 rounded-3xl"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      
+      {/* Top Search bar area matching screenshot exactly */}
+      <div className="relative w-full max-w-xl">
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400" />
+        <input 
+          type="text" 
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search approvals..." 
+          className="w-full pl-10 pr-4 py-2.5 text-sm bg-white border border-slate-200 dark:bg-slate-950 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-900 dark:text-white shadow-sm"
+        />
+      </div>
+
+      {/* Top Stats Cards Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        {/* Card 1: In Office % */}
+        <div className="bg-white dark:bg-slate-950 p-6 rounded-3xl border-l-4 border-indigo-650 dark:border-indigo-500 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between">
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">In Office %</span>
+            <span className="text-2xl font-extrabold text-indigo-650 dark:text-indigo-400">84.2%</span>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center text-indigo-650 dark:text-indigo-400">
+            <Users className="w-5 h-5" />
+          </div>
+        </div>
+
+        {/* Card 2: On Leave Today */}
+        <div className="bg-white dark:bg-slate-950 p-6 rounded-3xl border-l-4 border-amber-500 dark:border-amber-600 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between">
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">On Leave Today</span>
+            <span className="text-2xl font-extrabold text-slate-850 dark:text-white">12</span>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center text-amber-550 dark:text-amber-400">
+            <Plane className="w-5 h-5" />
+          </div>
+        </div>
+
+        {/* Card 3: Pending Requests */}
+        <div className="bg-white dark:bg-slate-950 p-6 rounded-3xl border-l-4 border-rose-500 dark:border-rose-600 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between">
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Pending Requests</span>
+            <span className="text-2xl font-extrabold text-rose-500">{requests.length}</span>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/40 flex items-center justify-center text-rose-500">
+            <ClipboardList className="w-5 h-5" />
+          </div>
+        </div>
+
+      </div>
+
+      {/* Main Grid Content Split */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        
+        {/* Left Column: Pending Requests (Spans 2 columns) */}
+        <div className="xl:col-span-2 space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Pending Requests</h3>
+            
+            <div className="flex items-center gap-2">
+              <button className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-950 dark:hover:bg-slate-850 text-slate-650 dark:text-slate-350 text-[10px] font-bold rounded-lg border border-slate-200 dark:border-slate-800 transition">
+                Filter
+              </button>
+              <button className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-950 dark:hover:bg-slate-850 text-slate-650 dark:text-slate-350 text-[10px] font-bold rounded-lg border border-slate-200 dark:border-slate-800 transition">
+                Bulk Actions
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {filteredRequests.length === 0 ? (
+              <div className="bg-white dark:bg-slate-950 p-12 rounded-3xl border border-slate-100 dark:border-slate-800 text-center space-y-3">
+                <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto" />
+                <p className="text-sm font-semibold text-slate-800 dark:text-white">All requests resolved!</p>
+                <p className="text-xs text-slate-400">Great job keeping up with compliance schedules.</p>
+              </div>
+            ) : (
+              filteredRequests.map((req) => (
+                <div 
+                  key={req.id} 
+                  className="bg-white dark:bg-slate-950 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm space-y-4 hover:shadow-md transition"
+                >
+                  {/* Card Header details */}
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <img src={req.avatar} alt={req.name} className="w-12 h-12 rounded-full object-cover" />
+                      <div>
+                        <h4 className="text-sm font-extrabold text-slate-800 dark:text-white">{req.name}</h4>
+                        <p className="text-[10px] text-slate-400 font-semibold mt-0.5">{req.role}</p>
+                      </div>
+                    </div>
+
+                    <span className={`self-start px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wide border ${req.badgeColor || 'bg-slate-100 text-slate-700'}`}>
+                      {req.type}
+                    </span>
+                  </div>
+
+                  {/* Date details and days remaining status */}
+                  <div className="flex flex-wrap items-center gap-x-6 gap-y-2 py-2 px-3 bg-slate-50 dark:bg-slate-900/60 rounded-xl text-xs font-semibold">
+                    <div className="flex items-center gap-2 text-slate-650 dark:text-slate-350">
+                      <Calendar className="w-4 h-4 text-slate-400" />
+                      <span>{req.dates}</span>
+                    </div>
+
+                    <div className={`flex items-center gap-1.5 ${req.isUrgent ? 'text-orange-600' : 'text-slate-500'}`}>
+                      {req.isUrgent ? (
+                        <AlertTriangle className="w-4 h-4 text-orange-500" />
+                      ) : (
+                        <Clock className="w-4 h-4 text-slate-400" />
+                      )}
+                      <span>{req.daysRemaining}</span>
+                    </div>
+                  </div>
+
+                  {/* Quote block */}
+                  <blockquote className="text-xs italic text-slate-550 dark:text-slate-400 font-medium pl-3 border-l-2 border-indigo-200 dark:border-indigo-900 leading-relaxed">
+                    "{req.reason}"
+                  </blockquote>
+
+                  {/* Actions buttons footer */}
+                  <div className="flex items-center gap-3 pt-2">
+                    <button 
+                      onClick={() => handleAction(req.id, req.name, 'approve')}
+                      className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-extrabold transition shadow-sm hover:shadow"
+                    >
+                      Approve
+                    </button>
+                    <button 
+                      onClick={() => handleAction(req.id, req.name, 'reject')}
+                      className="flex-1 py-3 bg-white hover:bg-slate-50 border border-slate-200 dark:bg-slate-950 dark:hover:bg-slate-900 dark:border-slate-800 text-slate-650 dark:text-slate-300 rounded-xl text-xs font-extrabold transition"
+                    >
+                      Reject
+                    </button>
+                  </div>
+
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Right Sidebar Widgets Panel */}
+        <div className="space-y-6">
+          
+          {/* Team Availability */}
+          <div className="bg-white dark:bg-slate-950 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-extrabold text-slate-800 dark:text-white">Team Availability</h3>
+              
+              <div className="flex items-center gap-2">
+                <button className="p-1 text-slate-400 hover:text-slate-600"><ChevronLeft className="w-4 h-4" /></button>
+                <span className="text-[10px] font-extrabold text-slate-700 dark:text-slate-300">October 2023</span>
+                <button className="p-1 text-slate-400 hover:text-slate-600"><ChevronRight className="w-4 h-4" /></button>
+              </div>
+            </div>
+
+            {/* Mon-Sun Day header */}
+            <div className="grid grid-cols-7 gap-1 text-center text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+              <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
+            </div>
+
+            {/* Days Calendar grid October 2023 */}
+            <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold text-slate-700 dark:text-slate-300">
+              <span className="py-1">1</span>
+              <span className="py-1">2</span>
+              {/* Oct 3: Pending request */}
+              <span className="py-1 bg-indigo-50/60 text-indigo-755 border border-indigo-200/50 rounded-lg dark:bg-indigo-950/20">3</span>
+              <span className="py-1">4</span>
+              <span className="py-1">5</span>
+              <span className="py-1">6</span>
+              <span className="py-1">7</span>
+              {/* Oct 8: Today */}
+              <span className="py-1 bg-indigo-600 text-white rounded-lg shadow-sm">8</span>
+              <span className="py-1">9</span>
+              <span className="py-1">10</span>
+              <span className="py-1">11</span>
+              {/* Oct 12, 13, 14, 15: Out */}
+              <span className="py-1 bg-orange-50/80 text-orange-755 border border-orange-200/40 rounded-lg dark:bg-orange-950/20">12</span>
+              <span className="py-1 bg-orange-50/80 text-orange-755 border border-orange-200/40 rounded-lg dark:bg-orange-950/20">13</span>
+              <span className="py-1 bg-orange-50/80 text-orange-755 border border-orange-200/40 rounded-lg dark:bg-orange-950/20">14</span>
+              <span className="py-1 bg-orange-50/80 text-orange-755 border border-orange-200/40 rounded-lg dark:bg-orange-950/20">15</span>
+              <span className="py-1">16</span>
+              <span className="py-1">17</span>
+              <span className="py-1">18</span>
+              <span className="py-1">19</span>
+              <span className="py-1">20</span>
+              <span className="py-1">21</span>
+              <span className="py-1">22</span>
+              <span className="py-1">23</span>
+              <span className="py-1">24</span>
+              <span className="py-1">25</span>
+              <span className="py-1">26</span>
+              <span className="py-1">27</span>
+              <span className="py-1">28</span>
+              <span className="py-1">29</span>
+              <span className="py-1">30</span>
+              <span className="py-1">31</span>
+            </div>
+
+            {/* Legend indicators */}
+            <div className="flex items-center gap-4 pt-2 border-t border-slate-50 dark:border-slate-900 justify-center text-[9px] font-bold">
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-600"></span>
+                <span className="text-slate-450 uppercase tracking-wide">Today</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-400"></span>
+                <span className="text-slate-450 uppercase tracking-wide">Out</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+                <span className="text-slate-450 uppercase tracking-wide">Pending</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Leave Policies list */}
+          <div className="bg-white dark:bg-slate-950 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm space-y-4 relative">
+            <h3 className="text-xs font-extrabold text-slate-800 dark:text-white">Leave Policies</h3>
+
+            <div className="space-y-3">
+              {policies.map((policy) => (
+                <div key={policy.id} className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-900 rounded-2xl">
+                  <div>
+                    <h4 className="text-[11px] font-bold text-slate-800 dark:text-white leading-none">{policy.name}</h4>
+                    <span className="text-[9px] text-slate-400 font-semibold block mt-1">{policy.desc}</span>
+                  </div>
+                  <span className="text-xs font-extrabold text-indigo-650 dark:text-indigo-400">{policy.val} <span className="text-[10px] text-slate-450 font-semibold">{policy.unit}</span></span>
+                </div>
+              ))}
+            </div>
+
+            <button 
+              onClick={() => triggerToast('Opening policy configurator')}
+              className="w-full py-2.5 bg-white hover:bg-slate-50 dark:bg-slate-950 dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[10px] font-bold text-slate-700 dark:text-slate-350 rounded-xl transition flex items-center justify-center gap-1.5"
+            >
+              <Sliders className="w-3.5 h-3.5" />
+              Configure Policies
+            </button>
+
+            {/* Dynamic floating add policy button */}
+            <button 
+              onClick={handleAddNewPolicy}
+              className="absolute -bottom-3 -right-3 w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-755 text-white flex items-center justify-center shadow-lg shadow-indigo-600/20 hover:scale-105 transition"
+              title="Add New Policy"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Smart Insights sparks */}
+          <div className="bg-indigo-50/40 border border-indigo-100/50 dark:bg-indigo-950/20 dark:border-indigo-900/40 p-5 rounded-3xl space-y-2 relative overflow-hidden">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-indigo-600 shrink-0" />
+              <h4 className="text-[10px] font-extrabold text-indigo-800 dark:text-indigo-400 uppercase tracking-widest">Smart Insights</h4>
+            </div>
+            <p className="text-[10px] text-indigo-850 dark:text-indigo-300 leading-relaxed font-semibold">
+              Based on historical data, leave requests spike by 15% in late October. Ensure your "Critical Project" blackout dates are updated.
+            </p>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  );
+}
