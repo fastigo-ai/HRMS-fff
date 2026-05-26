@@ -4,7 +4,14 @@ import { useEmployeeStore } from '../../../store/employeeStore';
 import { useUiStore } from '../../../store/uiStore';
 
 export default function TasksPage() {
-  const { tasks, updateTaskStatus, incrementTaskProgress } = useEmployeeStore();
+  const { 
+    tasks, 
+    updateTaskStatus, 
+    incrementTaskProgress,
+    startTask,
+    addWorkReport,
+    completeTask
+  } = useEmployeeStore();
   const { triggerToast } = useUiStore();
 
   return (
@@ -12,6 +19,9 @@ export default function TasksPage() {
       tasks={tasks}
       updateTaskStatus={updateTaskStatus}
       incrementTaskProgress={incrementTaskProgress}
+      startTask={startTask}
+      addWorkReport={addWorkReport}
+      completeTask={completeTask}
       triggerToast={triggerToast}
     />
   );

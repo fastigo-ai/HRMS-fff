@@ -19,6 +19,7 @@ const initialState = {
   clockedIn: false,
   clockInTime: null,
   elapsedTime: '00:00:00',
+  clockOutCompleted: false,
 };
 
 const authSlice = createSlice({
@@ -42,6 +43,7 @@ const authSlice = createSlice({
     setClockState: (state, action) => {
       state.clockedIn = action.payload.clockedIn;
       state.clockInTime = action.payload.clockInTime;
+      state.clockOutCompleted = action.payload.clockOutCompleted || false;
     },
     setElapsedTime: (state, action) => {
       state.elapsedTime = action.payload;
@@ -135,80 +137,85 @@ export const useAuthStore = (selectorFn) => {
 
       login: async (email, password) => {
         try {
-          const users = JSON.parse(localStorage.getItem('worksphere_db_users') || '[]');
-          const matchedUser = users.find(
-            (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-          );
-
-          if (!matchedUser) {
-            return { success: false, error: 'Invalid email or password credential' };
+          const res = await fetch("http://localhost:8000/api/auth/login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify({ email, password }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            return { success: false, error: data.message || "Invalid email or password credential" };
           }
+          const token = data.token;
+          const user = data.data.user;
 
           dispatch(setAuth({
             isAuthenticated: true,
-            userRole: matchedUser.role,
-            profileData: matchedUser
+            userRole: user.role,
+            profileData: user
           }));
 
           localStorage.setItem('worksphere_auth', 'true');
-          localStorage.setItem('worksphere_role', matchedUser.role);
-          localStorage.setItem('worksphere_profile', JSON.stringify(matchedUser));
+          localStorage.setItem('worksphere_token', token);
+          localStorage.setItem('worksphere_role', user.role);
+          localStorage.setItem('worksphere_profile', JSON.stringify(user));
 
-          return { success: true, role: matchedUser.role };
+          return { success: true, role: user.role };
         } catch (err) {
           return { success: false, error: 'Authentication internal server error' };
         }
       },
 
-      signup: async (name, email, password, role) => {
+      signup: async (payload, arg2, arg3, arg4) => {
         try {
-          const users = JSON.parse(localStorage.getItem('worksphere_db_users') || '[]');
-          const userExists = users.some((u) => u.email.toLowerCase() === email.toLowerCase());
+          const bodyPayload = typeof payload === "object" 
+            ? payload 
+            : { name: payload, email: arg2, password: arg3, role: arg4 };
 
-          if (userExists) {
-            return { success: false, error: 'Account email already registered' };
+          const res = await fetch("http://localhost:8000/api/auth/signup", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify(bodyPayload),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            return { success: false, error: data.message || "Registration failure" };
           }
-
-          const newUser = {
-            name,
-            email,
-            password,
-            role,
-            position: role === 'hr_admin' ? 'HR Coordinator' : role === 'manager' ? 'Scrum Manager' : 'Frontend Engineer',
-            department: role === 'hr_admin' ? 'People Operations' : role === 'manager' ? 'Product Engineering' : 'SaaS Development',
-            empId: `WS-${Math.floor(10000 + Math.random() * 90000)}`,
-            joinDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-            phone: '+1 (555) 901-2940',
-            address: 'Simulated Enterprise HQ, Staging City',
-            skills: ['React Framework', 'Zustand Stores', 'Vite Modules'],
-            bankDetails: {
-              bankName: 'Silicon Valley Clearing Bank',
-              accountNo: '•••• •••• ' + Math.floor(1000 + Math.random() * 9000),
-              panNumber: 'XXAPJ' + Math.floor(1000 + Math.random() * 9000) + 'F',
-              ifscCode: 'SVCB0008800'
-            }
-          };
-
-          users.push(newUser);
-          localStorage.setItem('worksphere_db_users', JSON.stringify(users));
+          const token = data.token;
+          const user = data.data.user;
 
           dispatch(setAuth({
             isAuthenticated: true,
-            userRole: newUser.role,
-            profileData: newUser
+            userRole: user.role,
+            profileData: user
           }));
 
           localStorage.setItem('worksphere_auth', 'true');
-          localStorage.setItem('worksphere_role', newUser.role);
-          localStorage.setItem('worksphere_profile', JSON.stringify(newUser));
+          localStorage.setItem('worksphere_token', token);
+          localStorage.setItem('worksphere_role', user.role);
+          localStorage.setItem('worksphere_profile', JSON.stringify(user));
 
-          return { success: true, role: newUser.role };
+          return { success: true, role: user.role };
         } catch (err) {
           return { success: false, error: 'Registration failure' };
         }
       },
 
-      logout: () => {
+      logout: async () => {
+        try {
+          await fetch("http://localhost:8000/api/auth/logout", {
+            method: "POST",
+            credentials: "include",
+          });
+        } catch (err) {
+          // Suppress errors during logout to guarantee standard client-side cleanup
+        }
         dispatch(setAuth({
           isAuthenticated: false,
           userRole: null,
@@ -221,68 +228,166 @@ export const useAuthStore = (selectorFn) => {
         dispatch(setElapsedTime('00:00:00'));
 
         localStorage.removeItem('worksphere_auth');
+        localStorage.removeItem('worksphere_token');
         localStorage.removeItem('worksphere_role');
         localStorage.removeItem('worksphere_profile');
       },
 
-      updateProfile: async (newProfile) => {
+      refreshSession: async () => {
         try {
-          const users = JSON.parse(localStorage.getItem('worksphere_db_users') || '[]');
-          const activeUser = authState.profileData;
-          
-          if (!activeUser) return { success: false, error: 'Session profile missing' };
-
-          const updatedUsers = users.map((u) => {
-            if (u.email.toLowerCase() === activeUser.email.toLowerCase()) {
-              return { ...u, ...newProfile };
-            }
-            return u;
+          const res = await fetch("http://localhost:8000/api/auth/refresh", {
+            method: "POST",
+            credentials: "include",
           });
+          const data = await res.json();
+          if (!res.ok) {
+            return { success: false };
+          }
+          const token = data.token;
+          const user = data.data.user;
 
-          localStorage.setItem('worksphere_db_users', JSON.stringify(updatedUsers));
-          const updatedUser = updatedUsers.find((u) => u.email.toLowerCase() === activeUser.email.toLowerCase());
+          dispatch(setAuth({
+            isAuthenticated: true,
+            userRole: user.role,
+            profileData: user
+          }));
 
-          dispatch(setProfile(updatedUser));
-          localStorage.setItem('worksphere_profile', JSON.stringify(updatedUser));
+          localStorage.setItem('worksphere_auth', 'true');
+          localStorage.setItem('worksphere_token', token);
+          localStorage.setItem('worksphere_role', user.role);
+          localStorage.setItem('worksphere_profile', JSON.stringify(user));
 
           return { success: true };
         } catch (err) {
-          return { success: false, error: err };
+          return { success: false };
+        }
+      },
+
+      updateProfile: async (newProfile) => {
+        try {
+          const token = localStorage.getItem('worksphere_token');
+          const res = await fetch("http://localhost:8000/api/auth/profile", {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+            },
+            credentials: "include",
+            body: JSON.stringify(newProfile),
+          });
+
+          // Handing automatic token refresh on 401 Unauthorized
+          if (res.status === 401) {
+            const refreshed = await actionsAndState.refreshSession();
+            if (refreshed.success) {
+              return actionsAndState.updateProfile(newProfile);
+            }
+            return { success: false, error: 'Session expired' };
+          }
+
+          const data = await res.json();
+          if (!res.ok) {
+            return { success: false, error: data.message || "Failed to update profile" };
+          }
+          const user = data.data.user;
+
+          dispatch(setProfile(user));
+          localStorage.setItem('worksphere_profile', JSON.stringify(user));
+
+          return { success: true };
+        } catch (err) {
+          return { success: false, error: 'Profile update failure' };
         }
       },
 
       setProfileData: async (newProfile) => {
+        return actionsAndState.updateProfile(newProfile);
+      },
+
+      toggleClock: async (triggerToast) => {
+        const { clockedIn, elapsedTime } = authState;
+        const token = localStorage.getItem('worksphere_token');
         try {
-          const users = JSON.parse(localStorage.getItem('worksphere_db_users') || '[]');
-          const activeUser = authState.profileData;
-          if (!activeUser) return { success: false, error: 'Session profile missing' };
-          const updatedUsers = users.map((u) => {
-            if (u.email.toLowerCase() === activeUser.email.toLowerCase()) {
-              return { ...u, ...newProfile };
+          if (!clockedIn) {
+            const res = await fetch("http://localhost:8000/api/attendance/clock-in", {
+              method: "POST",
+              headers: { 
+                "Content-Type": "application/json",
+                ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+              },
+              credentials: "include",
+            });
+            const data = await res.json();
+            if (!res.ok) {
+              if (triggerToast) triggerToast(data.message || "Failed to clock in.", "error");
+              return;
             }
-            return u;
-          });
-          localStorage.setItem('worksphere_db_users', JSON.stringify(updatedUsers));
-          const updatedUser = updatedUsers.find((u) => u.email.toLowerCase() === activeUser.email.toLowerCase());
-
-          dispatch(setProfile(updatedUser));
-          localStorage.setItem('worksphere_profile', JSON.stringify(updatedUser));
-
-          return { success: true };
+            dispatch(setClockState({ clockedIn: true, clockInTime: data.data.attendance.clockIn, clockOutCompleted: false }));
+            if (triggerToast) triggerToast('Clocked In successfully! Current geofence checked.');
+          } else {
+            const res = await fetch("http://localhost:8000/api/attendance/clock-out", {
+              method: "POST",
+              headers: { 
+                "Content-Type": "application/json",
+                ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+              },
+              credentials: "include",
+            });
+            const data = await res.json();
+            if (!res.ok) {
+              if (triggerToast) triggerToast(data.message || "Failed to clock out.", "error");
+              return;
+            }
+            dispatch(setClockState({ clockedIn: false, clockInTime: null, clockOutCompleted: true }));
+            if (triggerToast) triggerToast(`Clocked Out! Daily session logs recorded: ${elapsedTime}`);
+            dispatch(setElapsedTime('00:00:00'));
+          }
         } catch (err) {
-          return { success: false, error: err };
+          console.error("Attendance transaction failure:", err);
+          if (triggerToast) triggerToast("Server unreachable for check-in validation.", "error");
         }
       },
 
-      toggleClock: (triggerToast) => {
-        const { clockedIn, elapsedTime } = authState;
-        if (!clockedIn) {
-          dispatch(setClockState({ clockedIn: true, clockInTime: new Date().toISOString() }));
-          if (triggerToast) triggerToast('Clocked In successfully! Current geofence checked.');
-        } else {
-          dispatch(setClockState({ clockedIn: false, clockInTime: null }));
-          if (triggerToast) triggerToast(`Clocked Out! Daily session logs recorded: ${elapsedTime}`);
-          dispatch(setElapsedTime('00:00:00'));
+      checkTodayClockStatus: async () => {
+        const token = localStorage.getItem('worksphere_token');
+        try {
+          const res = await fetch("http://localhost:8000/api/attendance/today", {
+            headers: {
+              ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+            },
+            credentials: "include",
+          });
+          const data = await res.json();
+          if (res.ok && data.data.attendance) {
+            const att = data.data.attendance;
+            if (att.clockIn && !att.clockOut) {
+              dispatch(setClockState({
+                clockedIn: true,
+                clockInTime: att.clockIn,
+                clockOutCompleted: false
+              }));
+            } else if (att.clockIn && att.clockOut) {
+              dispatch(setClockState({
+                clockedIn: false,
+                clockInTime: null,
+                clockOutCompleted: true
+              }));
+            } else {
+              dispatch(setClockState({
+                clockedIn: false,
+                clockInTime: null,
+                clockOutCompleted: false
+              }));
+            }
+          } else {
+            dispatch(setClockState({
+              clockedIn: false,
+              clockInTime: null,
+              clockOutCompleted: false
+            }));
+          }
+        } catch (err) {
+          console.error("Failed to check daily clock status:", err);
         }
       },
 

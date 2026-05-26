@@ -1,7 +1,8 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { useSelector, useDispatch } from 'react-redux';
 import { useMemo } from 'react';
-import { DatabaseService } from '../services/api';
+import { DatabaseService, authenticatedFetch } from '../services/api';
+import { setProfile } from './authStore';
 
 const initialState = {
   tasks: [],
@@ -37,54 +38,124 @@ const employeeSlice = createSlice({
         },
         ...state.leaveHistory
       ];
+    },
+    setLeaveHistory: (state, action) => {
+      state.leaveHistory = action.payload;
     }
   }
 });
 
-export const { setTasks, setDownloadingDocument, applyLeaveRequest } = employeeSlice.actions;
+export const { setTasks, setDownloadingDocument, applyLeaveRequest, setLeaveHistory } = employeeSlice.actions;
 
 export const useEmployeeStore = (selectorFn) => {
   const dispatch = useDispatch();
   const employeeState = useSelector((s) => s.employee);
+  const profileData = useSelector((s) => s.auth.profileData);
 
   const actionsAndState = useMemo(() => {
     return {
       ...employeeState,
+      leaveBalances: profileData?.leaveBalances || employeeState.leaveBalances,
 
       fetchEmployeeData: async () => {
         try {
           const taskList = await DatabaseService.getTasks();
           dispatch(setTasks(taskList));
+
+          // Fetch leaves from database
+          const res = await authenticatedFetch("http://localhost:8000/api/leaves/my");
+          const data = await res.json();
+          if (res.ok) {
+            dispatch(setLeaveHistory(data.data.leaves));
+          }
+
+          // Fetch latest profile to sync leaveBalances, position, details etc.
+          const resProfile = await authenticatedFetch("http://localhost:8000/api/auth/profile");
+          const dataProfile = await resProfile.json();
+          if (resProfile.ok) {
+            dispatch(setProfile(dataProfile.data.user));
+            localStorage.setItem('worksphere_profile', JSON.stringify(dataProfile.data.user));
+          }
         } catch (err) {
-          console.error('Failed to sync employee tasks:', err);
+          console.error('Failed to sync employee tasks & leaves & profile:', err);
         }
       },
 
-      updateTaskStatus: (taskId, newStatus) => {
-        const updated = employeeState.tasks.map(t => {
-          if (t.id === taskId) {
-            let prog = t.progress;
-            if (newStatus === 'Completed') prog = 100;
-            else if (newStatus === 'To Do') prog = 0;
-            return { ...t, status: newStatus, progress: prog };
-          }
-          return t;
-        });
-        dispatch(setTasks(updated));
-        localStorage.setItem('worksphere_tasks', JSON.stringify(updated));
+      startTask: async (taskId, triggerToast) => {
+        try {
+          await DatabaseService.startTask(taskId);
+          const taskList = await DatabaseService.getTasks();
+          dispatch(setTasks(taskList));
+          if (triggerToast) triggerToast('Task started successfully! Shift time tracking activated.');
+        } catch (err) {
+          console.error('Failed to start task:', err);
+        }
       },
 
-      incrementTaskProgress: (taskId) => {
-        const updated = employeeState.tasks.map(t => {
-          if (t.id === taskId) {
-            const nextProg = Math.min(t.progress + 10, 100);
-            const nextStatus = nextProg === 100 ? 'Completed' : 'In Progress';
-            return { ...t, progress: nextProg, status: nextStatus };
+      addWorkReport: async (taskId, reportData, triggerToast) => {
+        try {
+          await DatabaseService.addWorkReport(taskId, reportData);
+          const taskList = await DatabaseService.getTasks();
+          dispatch(setTasks(taskList));
+          if (triggerToast) triggerToast('Daily work report submitted successfully!');
+        } catch (err) {
+          console.error('Failed to add work report:', err);
+        }
+      },
+
+      completeTask: async (taskId, completionData, triggerToast) => {
+        try {
+          await DatabaseService.completeTask(taskId, completionData);
+          const taskList = await DatabaseService.getTasks();
+          dispatch(setTasks(taskList));
+          if (triggerToast) triggerToast('Task marked as Completed! Sent to manager for approval review.');
+        } catch (err) {
+          console.error('Failed to complete task:', err);
+        }
+      },
+
+      updateTaskStatus: async (taskId, newStatus) => {
+        try {
+          const updated = employeeState.tasks.map(t => {
+            if (t.id === taskId) {
+              let prog = t.progress;
+              if (newStatus === 'Completed') prog = 100;
+              return { ...t, status: newStatus, progress: prog };
+            }
+            return t;
+          });
+          dispatch(setTasks(updated));
+          
+          if (newStatus === 'Completed') {
+            await DatabaseService.completeTask(taskId, { notes: 'Marked complete via toggle.' });
+          } else if (newStatus === 'In Progress') {
+            await DatabaseService.startTask(taskId);
+          } else {
+            const currentTasks = await DatabaseService.getTasks();
+            const updatedDb = currentTasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t);
+            localStorage.setItem('worksphere_tasks', JSON.stringify(updatedDb));
           }
-          return t;
-        });
-        dispatch(setTasks(updated));
-        localStorage.setItem('worksphere_tasks', JSON.stringify(updated));
+          
+          const taskList = await DatabaseService.getTasks();
+          dispatch(setTasks(taskList));
+        } catch (err) {
+          console.error('Failed to update status:', err);
+        }
+      },
+
+      incrementTaskProgress: async (taskId) => {
+        try {
+          await DatabaseService.addWorkReport(taskId, {
+            dailyUpdate: 'Quick progress update',
+            workCompleted: 'Completed incremental sprints',
+            issues: 'None',
+            timeSpent: '30 mins'
+          });
+          const taskList = await DatabaseService.getTasks();
+          dispatch(setTasks(taskList));
+        } catch (err) {
+          console.error('Failed to increment progress:', err);
+        }
       },
 
       handleDocumentDownload: (docName, triggerToast) => {
@@ -95,12 +166,32 @@ export const useEmployeeStore = (selectorFn) => {
         }, 1500);
       },
 
-      applyLeave: (leaveRequest, triggerToast) => {
-        dispatch(applyLeaveRequest(leaveRequest));
-        if (triggerToast) triggerToast('Leave request submitted successfully for approval.');
+      applyLeave: async (leaveRequest, triggerToast) => {
+        try {
+          const res = await authenticatedFetch("http://localhost:8000/api/leaves/my", {
+            method: "POST",
+            body: JSON.stringify(leaveRequest),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            if (triggerToast) triggerToast(data.message || 'Failed to submit leave request.', 'error');
+            return;
+          }
+
+          // Append leave to local history list
+          dispatch(applyLeaveRequest(data.data.leave));
+
+          // Update user balances in AuthStore!
+          dispatch(setProfile(data.data.user));
+
+          if (triggerToast) triggerToast('Leave request submitted successfully for approval.');
+        } catch (err) {
+          console.error('Failed to apply for leave:', err);
+          if (triggerToast) triggerToast('Failed to apply for leave. Server unreachable.', 'error');
+        }
       }
     };
-  }, [employeeState, dispatch]);
+  }, [employeeState, dispatch, profileData]);
 
   if (typeof selectorFn === 'function') {
     return selectorFn(actionsAndState);

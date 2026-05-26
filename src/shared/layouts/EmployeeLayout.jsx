@@ -7,7 +7,7 @@ import { useUiStore } from '../../store/uiStore';
 import { useEmployeeStore } from '../../store/employeeStore';
 
 export default function EmployeeLayout() {
-  const { profileData, clockedIn, elapsedTime, updateElapsedTime, currentTab, setCurrentTab } = useAuthStore();
+  const { profileData, clockedIn, elapsedTime, updateElapsedTime, currentTab, setCurrentTab, checkTodayClockStatus } = useAuthStore();
   const { sidebarOpen, setSidebarOpen, theme, toggleTheme, notifications } = useUiStore();
   const { fetchEmployeeData } = useEmployeeStore();
   const navigate = useNavigate();
@@ -21,9 +21,10 @@ export default function EmployeeLayout() {
     }
   }, [location.pathname]);
 
-  // Fetch task lists on initial render
+  // Fetch task lists and restore clock state on initial render
   useEffect(() => {
     fetchEmployeeData();
+    checkTodayClockStatus();
   }, []);
 
   // Clock elapsed timer sync

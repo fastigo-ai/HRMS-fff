@@ -2,6 +2,7 @@ import { createSlice } from '@reduxjs/toolkit';
 import { useSelector, useDispatch } from 'react-redux';
 import { useMemo } from 'react';
 import { DatabaseService } from '../services/api';
+import { addNotification } from './uiStore';
 
 const initialState = {
   stats: null,
@@ -106,9 +107,39 @@ export const useManagerStore = (selectorFn) => {
         try {
           const updatedTasks = await DatabaseService.addManagerTask(taskDetails);
           dispatch(setTasks(updatedTasks));
+          
+          // Send notification to the employee
+          dispatch(addNotification({
+            title: `New Task Assigned: ${taskDetails.title}`,
+            message: `Manager David Miller assigned you a new task: "${taskDetails.title}". Deadline: ${taskDetails.deadline}.`,
+            category: 'task',
+            priority: taskDetails.priority.toLowerCase()
+          }));
+          
           if (triggerToast) triggerToast('New agile sprint task successfully assigned!');
         } catch (err) {
           console.error('Failed to assign sprint deliverable:', err);
+        }
+      },
+
+      reviewTask: async (taskId, decision, notes, triggerToast) => {
+        try {
+          const updatedTasks = await DatabaseService.reviewTask(taskId, decision, notes);
+          dispatch(setTasks(updatedTasks));
+          
+          const task = updatedTasks.find(t => t.id === taskId);
+          
+          // Send notification to the employee
+          dispatch(addNotification({
+            title: `Task Review: ${decision}`,
+            message: `Manager David Miller has ${decision.toLowerCase()}ed your task "${task?.title || ''}". Feedback: "${notes || 'No comments'}"`,
+            category: 'task',
+            priority: decision === 'Reopened' || decision === 'Rejected' ? 'high' : 'normal'
+          }));
+          
+          if (triggerToast) triggerToast(`Task has been successfully marked as ${decision}!`);
+        } catch (err) {
+          console.error('Failed to resolve task review:', err);
         }
       }
     };

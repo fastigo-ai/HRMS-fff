@@ -13,6 +13,7 @@ export default function Leaves({
   setLeaveBalances,
   leaveHistory,
   setLeaveHistory,
+  applyLeave,
   triggerToast
 }) {
   const [quickForm, setQuickForm] = useState({
@@ -43,27 +44,34 @@ export default function Leaves({
       return;
     }
 
-    // Update balances
-    setLeaveBalances({
-      ...leaveBalances,
-      [balanceKey]: leaveBalances[balanceKey] - diffDays
-    });
-
-    // Add to history
     const newReq = {
-      id: leaveHistory.length + 1,
       type: quickForm.type,
       startDate: quickForm.startDate,
       endDate: quickForm.endDate,
       totalDays: diffDays,
-      reason: quickForm.reason,
-      status: 'Pending',
-      approvedBy: 'Pending'
+      reason: quickForm.reason
     };
 
-    setLeaveHistory([newReq, ...leaveHistory]);
+    if (typeof applyLeave === 'function') {
+      applyLeave(newReq);
+    } else {
+      // Fallback: update local React state if state callbacks were supplied
+      if (typeof setLeaveBalances === 'function') {
+        setLeaveBalances({
+          ...leaveBalances,
+          [balanceKey]: leaveBalances[balanceKey] - diffDays
+        });
+      }
+      if (typeof setLeaveHistory === 'function') {
+        setLeaveHistory([
+          { id: leaveHistory ? leaveHistory.length + 1 : 1, ...newReq, status: 'Pending', approvedBy: 'Pending' },
+          ...(leaveHistory || [])
+        ]);
+      }
+      triggerToast(`Leave request for ${diffDays} day(s) submitted.`);
+    }
+
     setQuickForm({ type: 'Sick Leave', startDate: '', endDate: '', reason: '' });
-    triggerToast(`Leave request for ${diffDays} day(s) submitted.`);
   };
 
   // Helper component to render circular progress rings matching Screenshot 3
@@ -334,6 +342,98 @@ export default function Leaves({
 
         </div>
 
+      </div>
+
+      {/* Leave History Ledger Section */}
+      <div className="bg-white dark:bg-slate-950 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">My Leave Requests History</h3>
+            <p className="text-xs text-slate-400 dark:text-slate-500">Track all your submitted requests and their real-time approval status.</p>
+          </div>
+          
+          <span className="px-3 py-1 bg-slate-50 dark:bg-slate-900 text-[10px] font-bold text-slate-500 dark:text-slate-400 rounded-lg border border-slate-200 dark:border-slate-800 uppercase tracking-wide">
+            {leaveHistory?.length || 0} Request{leaveHistory?.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+
+        {/* Table or empty state */}
+        {!leaveHistory || leaveHistory.length === 0 ? (
+          <div className="text-center py-12 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl space-y-2">
+            <Info className="w-8 h-8 text-slate-350 dark:text-slate-655 mx-auto" />
+            <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">No Leave Requests Found</h4>
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 max-w-xs mx-auto">You haven't submitted any leave applications yet. Use the Quick Apply form to create one.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-100 dark:border-slate-800">
+                  <th className="pb-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Leave Type</th>
+                  <th className="pb-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Dates & Duration</th>
+                  <th className="pb-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reason</th>
+                  <th className="pb-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</th>
+                  <th className="pb-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Resolved By</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50 dark:divide-slate-900/50">
+                {leaveHistory.map((req, idx) => {
+                  const formatDate = (dateStr) => {
+                    if (!dateStr) return '';
+                    const d = new Date(dateStr);
+                    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                  };
+
+                  let typeBadgeColor = 'bg-slate-50 text-slate-655 dark:bg-slate-900 dark:text-slate-400';
+                  if (req.type === 'Sick Leave') typeBadgeColor = 'bg-rose-50 text-rose-600 border border-rose-100 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/40';
+                  else if (req.type === 'Casual Leave') typeBadgeColor = 'bg-sky-50 text-sky-600 border border-sky-100 dark:bg-sky-950/20 dark:text-sky-400 dark:border-sky-900/40';
+                  else if (req.type === 'Paid Leave') typeBadgeColor = 'bg-indigo-50 text-indigo-600 border border-indigo-100 dark:bg-indigo-950/20 dark:text-indigo-400 dark:border-indigo-900/40';
+
+                  let statusBadgeColor = 'bg-amber-50 text-amber-600 border border-amber-100 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/40';
+                  if (req.status === 'Approved') statusBadgeColor = 'bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/40';
+                  else if (req.status === 'Rejected') statusBadgeColor = 'bg-rose-50 text-rose-600 border border-rose-100 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/40';
+
+                  return (
+                    <tr key={req.id || req._id || idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors">
+                      <td className="py-4">
+                        <span className={`px-2.5 py-1 text-[10px] font-extrabold rounded-full uppercase tracking-wider ${typeBadgeColor}`}>
+                          {req.type}
+                        </span>
+                      </td>
+                      <td className="py-4">
+                        <div className="space-y-1">
+                          <span className="text-xs font-bold text-slate-800 dark:text-white">
+                            {formatDate(req.startDate)} - {formatDate(req.endDate)}
+                          </span>
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold block">
+                            {req.totalDays} day{req.totalDays !== 1 ? 's' : ''} requested
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-4">
+                        <span className="text-xs font-medium text-slate-655 dark:text-slate-400 italic max-w-xs block truncate" title={req.reason}>
+                          "{req.reason}"
+                        </span>
+                      </td>
+                      <td className="py-4">
+                        <span className={`px-2.5 py-1 text-[9px] font-extrabold rounded-full uppercase tracking-widest ${statusBadgeColor}`}>
+                          {req.status}
+                        </span>
+                      </td>
+                      <td className="py-4 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                        {req.status === 'Pending' ? (
+                          <span className="text-slate-400 italic">Pending Review</span>
+                        ) : (
+                          <span>{req.approvedBy || 'HR Admin'}</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
     </div>

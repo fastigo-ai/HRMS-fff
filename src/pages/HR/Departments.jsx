@@ -9,15 +9,38 @@ import {
   Plus,
   Filter,
   CheckCircle,
-  HelpCircle
+  HelpCircle,
+  X,
+  User,
+  Mail,
+  MapPin,
+  Coins
 } from 'lucide-react';
 import { DatabaseService } from '../../services/api';
+import { useHrStore } from '../../store/hrStore';
 
 export default function HRDepartments({
   triggerToast
 }) {
   const [depts, setDepts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedDept, setSelectedDept] = useState(null);
+
+  const { hrEmployees } = useHrStore();
+
+  const getDeptEmployees = (deptName) => {
+    return hrEmployees.filter(emp => {
+      const dName = deptName.toLowerCase();
+      const eDept = emp.dept.toLowerCase();
+      
+      if (dName.includes('engineering') && eDept.includes('engineering')) return true;
+      if (dName.includes('design') && eDept.includes('design')) return true;
+      if (dName.includes('marketing') && eDept.includes('marketing')) return true;
+      if (dName.includes('success') && eDept.includes('success')) return true;
+      
+      return dName.includes(eDept) || eDept.includes(dName);
+    });
+  };
 
   // Fetch departments data asynchronously
   useEffect(() => {
@@ -150,7 +173,11 @@ export default function HRDepartments({
           {depts.map((d, i) => {
             const DeptIcon = getDeptIcon(d.name);
             return (
-              <div key={d.id || i} className="bg-white dark:bg-slate-950 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-6 hover:shadow-md transition">
+              <div 
+                key={d.id || i} 
+                onClick={() => setSelectedDept(d)}
+                className="bg-white dark:bg-slate-950 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-6 hover:shadow-md hover:border-slate-200 dark:hover:border-slate-700 transition cursor-pointer group"
+              >
                 
                 {/* Department Icon & Details */}
                 <div className="space-y-4">
@@ -217,6 +244,112 @@ export default function HRDepartments({
         </div>
 
       </div>
+
+      {/* Department Details Drawer */}
+      {selectedDept && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/40 dark:bg-slate-950/60 backdrop-blur-sm">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-950 border-l border-slate-150 dark:border-slate-850 shadow-2xl p-6 flex flex-col h-full animate-in slide-in-from-right duration-250">
+            
+            {/* Header section */}
+            <div className="flex justify-between items-start pb-4 border-b border-slate-100 dark:border-slate-900">
+              <div className="space-y-1.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] font-bold text-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-0.5 rounded-lg border border-indigo-100/40">
+                    Department Blueprint
+                  </span>
+                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 rounded-lg border border-emerald-100/40">
+                    {selectedDept.efficiency || 95}% Efficiency
+                  </span>
+                </div>
+                <h3 className="text-lg font-extrabold text-slate-900 dark:text-white leading-relaxed">
+                  {selectedDept.name}
+                </h3>
+                <p className="text-xs text-slate-400 dark:text-slate-500 font-semibold leading-relaxed">
+                  {selectedDept.desc || 'Active corporate organizational unit.'}
+                </p>
+              </div>
+              <button 
+                onClick={() => setSelectedDept(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content Body */}
+            <div className="flex-1 overflow-y-auto py-6 space-y-6">
+              
+              {/* Leader & Summary Stats */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3.5 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-100 dark:border-slate-900 space-y-1">
+                  <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Department Lead</span>
+                  <span className="text-xs font-bold text-slate-750 dark:text-slate-200 flex items-center gap-1.5">
+                    <User className="w-4 h-4 text-indigo-500" />
+                    {selectedDept.leader}
+                  </span>
+                </div>
+                <div className="p-3.5 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-100 dark:border-slate-900 space-y-1">
+                  <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Annual Budget</span>
+                  <span className="text-xs font-bold text-slate-750 dark:text-slate-200 flex items-center gap-1.5">
+                    <Coins className="w-4 h-4 text-emerald-500" />
+                    {selectedDept.budget || '₹1.0Cr / yr'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Roster / Employee list */}
+              <div className="space-y-3.5">
+                <h4 className="text-xs font-extrabold text-slate-950 dark:text-white uppercase tracking-wider flex items-center justify-between">
+                  <span>Department Employees</span>
+                  <span className="px-2.5 py-0.5 text-[10px] font-extrabold text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 rounded-full border border-indigo-100/40">
+                    {getDeptEmployees(selectedDept.name).length} assigned
+                  </span>
+                </h4>
+                
+                <div className="space-y-3">
+                  {getDeptEmployees(selectedDept.name).length === 0 ? (
+                    <div className="text-center py-8 bg-slate-50 dark:bg-slate-900/20 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800">
+                      <User className="w-8 h-8 text-slate-400 stroke-1.5 mx-auto mb-2 opacity-50" />
+                      <p className="text-xs font-bold text-slate-500">No employees currently assigned in roster</p>
+                    </div>
+                  ) : (
+                    getDeptEmployees(selectedDept.name).map((emp) => (
+                      <div key={emp.id} className="p-3.5 bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-xl shadow-xs flex items-center justify-between hover:shadow-sm transition">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <img src={emp.avatar} alt={emp.name} className="w-9 h-9 rounded-full object-cover ring-2 ring-indigo-500/10" />
+                          <div className="leading-tight min-w-0">
+                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block truncate">{emp.name}</span>
+                            <span className="text-[10px] text-slate-400 font-semibold block truncate">{emp.role}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 shrink-0">
+                          <div className="text-right hidden sm:block">
+                            <span className="text-[9px] text-slate-400 font-semibold block flex items-center gap-0.5 justify-end">
+                              <MapPin className="w-3.5 h-3.5 text-indigo-400" /> {emp.location}
+                            </span>
+                            <span className="text-[9px] text-slate-400 font-semibold block flex items-center gap-0.5 justify-end">
+                              <Mail className="w-3.5 h-3.5 text-indigo-400" /> {emp.email}
+                            </span>
+                          </div>
+                          
+                          <span className={`px-2 py-0.5 rounded text-[8px] font-extrabold uppercase ${
+                            emp.status === 'Active' ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 border border-emerald-100' : 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 border border-amber-100'
+                          }`}>
+                            {emp.status}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* Footer details */}
       <footer className="pt-8 pb-4 border-t border-slate-100 dark:border-slate-900 flex flex-col sm:flex-row items-center justify-between text-[10px] text-slate-400 font-semibold gap-3">
