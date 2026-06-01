@@ -31,7 +31,9 @@ export default function PMTasks({ triggerToast }) {
     fetchPMData,
     addManagerTask,
     updateTaskStatus,
-    reviewTask
+    reviewTask,
+    editManagerTask,
+    deleteManagerTask
   } = useManagerStore();
 
   const [activeViewTab, setActiveViewTab] = useState('board'); // 'board' | 'review'
@@ -51,6 +53,69 @@ export default function PMTasks({ triggerToast }) {
     category: 'Engineering',
     deadline: ''
   });
+
+  // Task edit state
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editTaskData, setEditTaskData] = useState({
+    id: '',
+    title: '',
+    description: '',
+    assignee: 'Alex Johnson',
+    priority: 'Medium',
+    status: 'Pending',
+    category: 'Engineering',
+    deadline: ''
+  });
+
+  const handleStartEdit = (task) => {
+    setEditTaskData({
+      id: task.id || task._id,
+      title: task.title || '',
+      description: task.description || '',
+      assignee: task.assignee || 'Alex Johnson',
+      priority: task.priority || 'Medium',
+      status: task.status || 'Pending',
+      category: task.category || 'Engineering',
+      deadline: task.deadline || ''
+    });
+    setEditModalOpen(true);
+  };
+
+  const handleDeleteTask = async (taskId) => {
+    if (window.confirm("Are you sure you want to delete this sprint task? This operation cannot be undone.")) {
+      try {
+        await deleteManagerTask(taskId, triggerToast);
+        setSelectedTask(null);
+      } catch (err) {
+        console.error("Delete failed:", err);
+      }
+    }
+  };
+
+  const handleEditTaskSubmit = async (e) => {
+    e.preventDefault();
+    if (!editTaskData.title.trim()) {
+      triggerToast('Task title is required', 'error');
+      return;
+    }
+
+    try {
+      await editManagerTask(editTaskData.id, {
+        title: editTaskData.title,
+        description: editTaskData.description,
+        assignee: editTaskData.assignee,
+        priority: editTaskData.priority,
+        status: editTaskData.status,
+        category: editTaskData.category,
+        deadline: editTaskData.deadline
+      }, triggerToast);
+      
+      setEditModalOpen(false);
+      setSelectedTask(null);
+    } catch (err) {
+      console.error('Task update failed:', err);
+    }
+  };
 
   useEffect(() => {
     fetchPMData();
@@ -372,7 +437,7 @@ export default function PMTasks({ triggerToast }) {
             
             {/* Header section */}
             <div className="flex justify-between items-start pb-4 border-b border-slate-100 dark:border-slate-900">
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 flex-1 mr-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-[10px] font-bold text-violet-500 bg-violet-50 dark:bg-violet-950/40 px-2.5 py-0.5 rounded-lg border border-violet-100/40">
                     {selectedTask.category || 'Agile'}
@@ -387,10 +452,24 @@ export default function PMTasks({ triggerToast }) {
                 <h3 className="text-sm font-extrabold text-slate-900 dark:text-white leading-relaxed">
                   {selectedTask.title}
                 </h3>
+                <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100 dark:border-slate-900/60">
+                  <button
+                    onClick={() => handleStartEdit(selectedTask)}
+                    className="px-2.5 py-1 text-[10px] font-extrabold text-violet-600 hover:text-white hover:bg-violet-600 border border-violet-200 dark:border-violet-850 rounded-lg transition flex items-center gap-1 cursor-pointer"
+                  >
+                    Edit Task
+                  </button>
+                  <button
+                    onClick={() => handleDeleteTask(selectedTask.id)}
+                    className="px-2.5 py-1 text-[10px] font-extrabold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 dark:border-rose-950 rounded-lg transition flex items-center gap-1 cursor-pointer"
+                  >
+                    Delete Task
+                  </button>
+                </div>
               </div>
               <button 
                 onClick={() => setSelectedTask(null)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition"
+                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -665,6 +744,131 @@ export default function PMTasks({ triggerToast }) {
                   className="w-full py-3.5 text-xs font-bold text-white bg-violet-600 hover:bg-violet-700 rounded-xl transition shadow-md shadow-violet-650/10 cursor-pointer"
                 >
                   Confirm & Assign Deliverable
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Task Edit Modal Wizard */}
+      {editModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 dark:bg-slate-950/60 backdrop-blur-sm px-4">
+          <div className="glass-panel w-full max-w-lg bg-white dark:bg-slate-950 border border-slate-150 dark:border-slate-800 rounded-2xl shadow-xl p-6 relative animate-in fade-in-50 zoom-in-95 duration-200">
+            <button 
+              onClick={() => setEditModalOpen(false)}
+              className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-650 rounded-lg"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-2 mb-6">
+              <CheckSquare className="w-5.5 h-5.5 text-violet-500" />
+              <h3 className="text-base font-extrabold text-slate-900 dark:text-white">Edit Sprint Deliverable</h3>
+            </div>
+
+            <form onSubmit={handleEditTaskSubmit} className="space-y-4 text-xs font-semibold text-slate-500">
+              <div>
+                <label className="text-slate-400 block mb-1.5 uppercase tracking-wider font-extrabold text-[10px]">Task Title</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. Design responsive milestone chart widgets..."
+                  value={editTaskData.title}
+                  onChange={(e) => setEditTaskData(prev => ({ ...prev, title: e.target.value }))}
+                  required
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-850 rounded-xl focus:outline-none focus:border-violet-500 text-slate-900 dark:text-white font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-400 block mb-1.5 uppercase tracking-wider font-extrabold text-[10px]">Detailed Instructions / Description</label>
+                <textarea 
+                  rows={3}
+                  placeholder="Detail step-by-step instructions, design files location, and test parameters..."
+                  value={editTaskData.description}
+                  onChange={(e) => setEditTaskData(prev => ({ ...prev, description: e.target.value }))}
+                  required
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-850 rounded-xl focus:outline-none focus:border-violet-500 text-slate-900 dark:text-white font-medium"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-slate-400 block mb-1.5 uppercase tracking-wider font-extrabold text-[10px]">Assignee Staff</label>
+                  <select 
+                    value={editTaskData.assignee}
+                    onChange={(e) => setEditTaskData(prev => ({ ...prev, assignee: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-850 rounded-xl focus:outline-none focus:border-violet-500 text-slate-700 dark:text-slate-300 font-bold"
+                  >
+                    {completeTeamOptions.map((member, mIdx) => (
+                      <option key={member.id || mIdx} value={member.name}>{member.name} ({member.role})</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-slate-400 block mb-1.5 uppercase tracking-wider font-extrabold text-[10px]">Category</label>
+                  <select 
+                    value={editTaskData.category}
+                    onChange={(e) => setEditTaskData(prev => ({ ...prev, category: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-850 rounded-xl focus:outline-none focus:border-violet-500 text-slate-700 dark:text-slate-300 font-bold"
+                  >
+                    <option value="Engineering">Engineering</option>
+                    <option value="Creative">Creative</option>
+                    <option value="Backend">Backend</option>
+                    <option value="Product">Product</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-slate-400 block mb-1.5 uppercase tracking-wider font-extrabold text-[10px]">Priority</label>
+                  <select 
+                    value={editTaskData.priority}
+                    onChange={(e) => setEditTaskData(prev => ({ ...prev, priority: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-850 rounded-xl focus:outline-none focus:border-violet-500 text-slate-700 dark:text-slate-300 font-bold"
+                  >
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-slate-400 block mb-1.5 uppercase tracking-wider font-extrabold text-[10px]">Deadline / Due Date</label>
+                  <input 
+                    type="text"
+                    placeholder="e.g. May 30, 2026"
+                    value={editTaskData.deadline}
+                    onChange={(e) => setEditTaskData(prev => ({ ...prev, deadline: e.target.value }))}
+                    required
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-850 rounded-xl focus:outline-none focus:border-violet-500 text-slate-750 font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <label className="text-slate-400 block mb-1.5 uppercase tracking-wider font-extrabold text-[10px]">Task Status Column</label>
+                  <select 
+                    value={editTaskData.status}
+                    onChange={(e) => setEditTaskData(prev => ({ ...prev, status: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-850 rounded-xl focus:outline-none focus:border-violet-500 text-slate-700 dark:text-slate-300 font-bold"
+                  >
+                    <option value="Pending">Pending / Backlog</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Completed">Completed / In Review</option>
+                    <option value="Approved">Approved / Done</option>
+                    <option value="Reopened">Reopened / Rework</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-900">
+                <button 
+                  type="submit" 
+                  className="w-full py-3.5 text-xs font-bold text-white bg-violet-600 hover:bg-violet-700 rounded-xl transition shadow-md shadow-violet-650/10 cursor-pointer"
+                >
+                  Save Changes
                 </button>
               </div>
             </form>

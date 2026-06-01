@@ -7,7 +7,8 @@ import {
   Moon,
   Shield,
   Layers,
-  LogOut
+  LogOut,
+  Clock
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useUiStore } from '../../store/uiStore';
@@ -22,7 +23,7 @@ export default function PMHeader({
   setCurrentTab,
   triggerToast
 }) {
-  const { logout, profileData } = useAuthStore();
+  const { logout, profileData, clockedIn, elapsedTime, toggleClock } = useAuthStore();
   const { triggerToast: uiToast } = useUiStore();
 
   const handleLogout = () => {
@@ -56,7 +57,6 @@ export default function PMHeader({
         </button>
         <div>
           <h2 className="text-base font-extrabold text-slate-900 dark:text-white leading-none">{getBreadcrumbTitle()}</h2>
-          <span className="text-[10px] font-bold text-violet-500 tracking-wide uppercase mt-1 block">WorkSphere Project Workspace</span>
         </div>
       </div>
 
@@ -77,6 +77,29 @@ export default function PMHeader({
           </select>
         </div>
 
+        {/* Personal clock-in/out trigger */}
+        <button
+          onClick={() => toggleClock(triggerToast || uiToast)}
+          className={`hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition duration-300 border ${
+            clockedIn 
+              ? 'bg-rose-50 border-rose-200 hover:bg-rose-100 dark:bg-rose-950/20 dark:border-rose-900 text-rose-600 dark:text-rose-400' 
+              : 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/20 dark:border-emerald-900 text-emerald-600 dark:text-emerald-400'
+          }`}
+          title={clockedIn ? "Click to clock out of geofenced system" : "Click to clock in to active workspace"}
+        >
+          {clockedIn ? (
+            <>
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+              <span>Clock Out ({elapsedTime})</span>
+            </>
+          ) : (
+            <>
+              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span>Clock In</span>
+            </>
+          )}
+        </button>
+
         {/* Theme Switcher Button */}
         <button 
           onClick={toggleDarkMode}
@@ -87,9 +110,21 @@ export default function PMHeader({
         </button>
 
         {/* Active Project indicator dropdown */}
-        <div className="hidden lg:flex items-center gap-2 px-3 py-1 bg-violet-50 dark:bg-violet-950/20 text-violet-600 dark:text-violet-400 rounded-xl border border-violet-100 dark:border-violet-900/40">
-          <Layers className="w-4 h-4" />
-          <span className="text-xs font-bold">Refactor Sprint</span>
+        <div className="hidden lg:flex items-center gap-2 px-3 py-1 bg-violet-50 dark:bg-violet-955/20 text-violet-650 dark:text-violet-400 rounded-xl border border-violet-100 dark:border-violet-900/40">
+          <Layers className="w-4 h-4 text-violet-500" />
+          <select 
+            defaultValue="Refactor Sprint"
+            onChange={(e) => {
+              const showToast = triggerToast || uiToast;
+              if (showToast) showToast(`Workspace sprint focus switched to: ${e.target.value}`);
+            }}
+            className="text-xs font-bold bg-transparent border-none focus:outline-none focus:ring-0 text-violet-650 dark:text-violet-400 cursor-pointer"
+          >
+            <option value="Refactor Sprint">Refactor Sprint</option>
+            <option value="Payroll Sprint">Payroll Sprint</option>
+            <option value="Roster Sprint">Roster Sprint</option>
+            <option value="Seeding Sprint">Seeding Sprint</option>
+          </select>
         </div>
 
         <button 

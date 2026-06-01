@@ -95,7 +95,8 @@ export const useManagerStore = (selectorFn) => {
 
       updateTaskStatus: async (taskId, newStatus, triggerToast) => {
         try {
-          const updatedTasks = await DatabaseService.updateManagerTaskStatus(taskId, newStatus);
+          await DatabaseService.updateManagerTaskStatus(taskId, newStatus);
+          const updatedTasks = await DatabaseService.getManagerTasks();
           dispatch(setTasks(updatedTasks));
           if (triggerToast) triggerToast(`Kanban task advanced to ${newStatus}`);
         } catch (err) {
@@ -105,7 +106,8 @@ export const useManagerStore = (selectorFn) => {
 
       addManagerTask: async (taskDetails, triggerToast) => {
         try {
-          const updatedTasks = await DatabaseService.addManagerTask(taskDetails);
+          await DatabaseService.addManagerTask(taskDetails);
+          const updatedTasks = await DatabaseService.getManagerTasks();
           dispatch(setTasks(updatedTasks));
           
           // Send notification to the employee
@@ -124,7 +126,8 @@ export const useManagerStore = (selectorFn) => {
 
       reviewTask: async (taskId, decision, notes, triggerToast) => {
         try {
-          const updatedTasks = await DatabaseService.reviewTask(taskId, decision, notes);
+          await DatabaseService.reviewTask(taskId, decision, notes);
+          const updatedTasks = await DatabaseService.getManagerTasks();
           dispatch(setTasks(updatedTasks));
           
           const task = updatedTasks.find(t => t.id === taskId);
@@ -140,6 +143,30 @@ export const useManagerStore = (selectorFn) => {
           if (triggerToast) triggerToast(`Task has been successfully marked as ${decision}!`);
         } catch (err) {
           console.error('Failed to resolve task review:', err);
+        }
+      },
+
+      editManagerTask: async (taskId, updatedFields, triggerToast) => {
+        try {
+          await DatabaseService.updateTask(taskId, updatedFields);
+          const updatedTasks = await DatabaseService.getManagerTasks();
+          dispatch(setTasks(updatedTasks));
+          if (triggerToast) triggerToast('Sprint task successfully updated!');
+        } catch (err) {
+          console.error('Failed to update sprint task:', err);
+          if (triggerToast) triggerToast('Failed to update sprint task', 'error');
+        }
+      },
+
+      deleteManagerTask: async (taskId, triggerToast) => {
+        try {
+          await DatabaseService.deleteTask(taskId);
+          const updatedTasks = await DatabaseService.getManagerTasks();
+          dispatch(setTasks(updatedTasks));
+          if (triggerToast) triggerToast('Sprint task successfully deleted!');
+        } catch (err) {
+          console.error('Failed to delete sprint task:', err);
+          if (triggerToast) triggerToast('Failed to delete sprint task', 'error');
         }
       }
     };

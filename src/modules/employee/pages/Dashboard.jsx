@@ -8,7 +8,7 @@ import { authenticatedFetch } from '../../../services/api';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const { setCurrentTab, clockedIn, toggleClock, clockOutCompleted } = useAuthStore();
+  const { setCurrentTab, clockedIn, toggleClock, clockOutCompleted, profileData } = useAuthStore();
   const { leaveBalances, tasks } = useEmployeeStore();
   const { notifications, triggerToast } = useUiStore();
 
@@ -55,6 +55,7 @@ export default function DashboardPage() {
       toggleClockInOut={() => toggleClock(triggerToast)}
       userRole="standard_employee"
       attendanceStats={attendanceStats}
+      profileData={profileData}
     />
   );
 }

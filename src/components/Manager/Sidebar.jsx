@@ -6,7 +6,9 @@ import {
   ClipboardCheck,
   Milestone,
   X,
-  ShieldAlert
+  ShieldAlert,
+  TrendingUp,
+  CalendarDays
 } from 'lucide-react';
 
 import { useAuthStore } from '../../store/authStore';
@@ -24,7 +26,9 @@ export default function PMSidebar({
     { id: 'pm-team', label: 'Team Allocation', icon: Users },
     { id: 'pm-tasks', label: 'Sprint Tasks', icon: CheckSquare },
     { id: 'pm-approvals', label: 'Approvals Hub', icon: ClipboardCheck },
-    { id: 'pm-milestones', label: 'Milestones Gantt', icon: Milestone }
+    { id: 'pm-milestones', label: 'Milestones Gantt', icon: Milestone },
+    { id: 'pm-holidays', label: 'Holiday Calendar', icon: CalendarDays },
+    { id: 'pm-sales-audit', label: 'Sales Audit', icon: TrendingUp }
   ];
 
   return (
@@ -40,7 +44,7 @@ export default function PMSidebar({
               W
             </div>
             <div>
-              <h1 className="text-lg font-bold text-slate-900 dark:text-white leading-none">WorkSphere</h1>
+              <h1 className="text-lg font-bold text-slate-900 dark:text-white leading-none">Fastigo X</h1>
               <span className="text-[10px] text-violet-500 font-extrabold tracking-wider">PM WORKSPACE</span>
             </div>
           </div>

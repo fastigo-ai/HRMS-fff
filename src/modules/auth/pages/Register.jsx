@@ -156,7 +156,7 @@ export default function Register() {
                       value={email}
                       disabled={loading}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="hr@worksphere.io"
+                      placeholder="hr@Fastigo X.io"
                       className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-800 rounded-2xl focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600/5 text-slate-800 dark:text-white"
                     />
                   </div>

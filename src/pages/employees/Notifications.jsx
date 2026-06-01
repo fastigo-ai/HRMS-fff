@@ -49,7 +49,7 @@ export default function Notifications({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-slate-900 dark:text-white">Notifications</h2>
-          <p className="text-xs text-slate-400 dark:text-slate-500">Stay updated with the latest activity across WorkSphere.</p>
+          <p className="text-xs text-slate-400 dark:text-slate-500">Stay updated with the latest activity across Fastigo X.</p>
         </div>
         
         <button 
@@ -207,7 +207,7 @@ export default function Notifications({
             {/* Promo banner graphic */}
             <div className="h-48 relative overflow-hidden bg-gradient-to-br from-indigo-900 to-slate-900 flex items-end p-6">
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-500/20 via-transparent to-transparent"></div>
-              <h3 className="text-xl font-extrabold text-white z-10">WorkSphere Annual Tech Summit 2024</h3>
+              <h3 className="text-xl font-extrabold text-white z-10">Fastigo X Annual Tech Summit 2024</h3>
               
               {/* Floating plus button */}
               <button 

@@ -8,7 +8,7 @@ import { useEmployeeStore } from '../../store/employeeStore';
 
 export default function EmployeeLayout() {
   const { profileData, clockedIn, elapsedTime, updateElapsedTime, currentTab, setCurrentTab, checkTodayClockStatus } = useAuthStore();
-  const { sidebarOpen, setSidebarOpen, theme, toggleTheme, notifications } = useUiStore();
+  const { sidebarOpen, setSidebarOpen, theme, toggleTheme, notifications, fetchNotifications } = useUiStore();
   const { fetchEmployeeData } = useEmployeeStore();
   const navigate = useNavigate();
   const location = useLocation();
@@ -21,9 +21,10 @@ export default function EmployeeLayout() {
     }
   }, [location.pathname]);
 
-  // Fetch task lists and restore clock state on initial render
+  // Fetch task lists, notifications, and restore clock state on initial render
   useEffect(() => {
     fetchEmployeeData();
+    fetchNotifications();
     checkTodayClockStatus();
   }, []);
 

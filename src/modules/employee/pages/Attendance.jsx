@@ -5,7 +5,7 @@ import { useUiStore } from '../../../store/uiStore';
 import { authenticatedFetch } from '../../../services/api';
 
 export default function AttendancePage() {
-  const { clockedIn, elapsedTime, toggleClock, clockOutCompleted } = useAuthStore();
+  const { clockedIn, elapsedTime, toggleClock, clockOutCompleted, setCurrentTab } = useAuthStore();
   const { triggerToast } = useUiStore();
   const [attendanceData, setAttendanceData] = useState({
     logs: [],
@@ -50,6 +50,7 @@ export default function AttendancePage() {
       triggerToast={triggerToast}
       logs={attendanceData.logs}
       stats={attendanceData.stats}
+      setCurrentTab={setCurrentTab}
     />
   );
 }

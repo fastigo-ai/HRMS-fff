@@ -6,7 +6,8 @@ import {
   Sun,
   Moon,
   Shield,
-  LogOut
+  LogOut,
+  Clock
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useUiStore } from '../../store/uiStore';
@@ -22,7 +23,7 @@ export default function HRHeader({
   setCurrentTab,
   triggerToast
 }) {
-  const { logout, profileData } = useAuthStore();
+  const { logout, profileData, clockedIn, elapsedTime, toggleClock } = useAuthStore();
   const { triggerToast: uiToast } = useUiStore();
 
   const handleLogout = () => {
@@ -71,20 +72,30 @@ export default function HRHeader({
       {/* Right Controls Area */}
       <div className="flex items-center gap-4">
         
-        {/* Dynamic Sandbox Role switcher */}
-        <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-slate-100 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-          <Shield className="w-4 h-4 text-indigo-555 text-indigo-500" />
-          <select 
-            value={userRole} 
-            onChange={(e) => setUserRole(e.target.value)}
-            className="text-xs font-semibold bg-transparent border-none focus:outline-none focus:ring-0 text-slate-700 dark:text-slate-300 cursor-pointer"
-          >
-            <option value="standard_employee">Employee View</option>
-            <option value="hr_admin">HR Admin View</option>
-            <option value="manager">Manager View</option>
-            <option value="system_admin">System Admin View</option>
-          </select>
-        </div>
+
+
+        {/* Personal clock-in/out trigger */}
+        <button
+          onClick={() => toggleClock(triggerToast || uiToast)}
+          className={`hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition duration-300 border ${
+            clockedIn 
+              ? 'bg-rose-50 border-rose-200 hover:bg-rose-100 dark:bg-rose-950/20 dark:border-rose-900 text-rose-600 dark:text-rose-400' 
+              : 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/20 dark:border-emerald-900 text-emerald-600 dark:text-emerald-400'
+          }`}
+          title={clockedIn ? "Click to clock out of geofenced system" : "Click to clock in to active workspace"}
+        >
+          {clockedIn ? (
+            <>
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+              <span>Clock Out ({elapsedTime})</span>
+            </>
+          ) : (
+            <>
+              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span>Clock In</span>
+            </>
+          )}
+        </button>
 
         {/* Theme Switcher Button */}
         <button 

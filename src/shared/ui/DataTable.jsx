@@ -1,4 +1,3 @@
-import React from 'react';
 
 export default function DataTable({
   columns = [],
@@ -42,9 +41,9 @@ export default function DataTable({
               </td>
             </tr>
           ) : (
-            data.map((row) => (
+            data.map((row, index) => (
               <tr
-                key={row[keyField]}
+                key={row[keyField] || row._id || row.id || index}
                 onClick={() => onRowClick && onRowClick(row)}
                 className={`transition-colors text-xs text-slate-700 dark:text-slate-200 ${
                   onRowClick ? 'hover:bg-slate-50 dark:hover:bg-slate-900/40 cursor-pointer' : 'hover:bg-slate-50/50 dark:hover:bg-slate-900/20'

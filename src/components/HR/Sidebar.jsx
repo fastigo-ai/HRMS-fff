@@ -28,8 +28,10 @@ export default function HRSidebar({
     { id: 'hr-departments', label: 'Departments', icon: FolderKanban },
     { id: 'hr-attendance', label: 'Attendance', icon: Clock },
     { id: 'hr-leaves', label: 'Leaves', icon: CalendarDays },
+    { id: 'hr-holidays', label: 'Holiday Calendar', icon: CalendarDays },
     { id: 'hr-payroll', label: 'Payroll', icon: IndianRupee },
     { id: 'hr-recruitment', label: 'Recruitment', icon: Briefcase },
+    { id: 'hr-sales-audit', label: 'Sales Audit', icon: BarChart3 },
     { id: 'hr-reports', label: 'Reports', icon: BarChart3 }
   ];
 
@@ -46,7 +48,7 @@ export default function HRSidebar({
               W
             </div>
             <div>
-              <h1 className="text-lg font-bold text-slate-900 dark:text-white leading-none">WorkSphere</h1>
+              <h1 className="text-lg font-bold text-slate-900 dark:text-white leading-none">Fastigo X</h1>
               <span className="text-[10px] text-indigo-555 text-indigo-500 font-bold tracking-wider">HRMS ADMIN</span>
             </div>
           </div>

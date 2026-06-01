@@ -6,8 +6,8 @@ import { useAuthStore } from '../../store/authStore';
 import { useUiStore } from '../../store/uiStore';
 
 export default function HRLayout() {
-  const { currentTab, setCurrentTab } = useAuthStore();
-  const { sidebarOpen, setSidebarOpen, theme, toggleTheme, notifications, triggerToast } = useUiStore();
+  const { currentTab, setCurrentTab, clockedIn, updateElapsedTime, checkTodayClockStatus } = useAuthStore();
+  const { sidebarOpen, setSidebarOpen, theme, toggleTheme, notifications, triggerToast, fetchNotifications } = useUiStore();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -18,6 +18,23 @@ export default function HRLayout() {
       setCurrentTab('hr-' + subpath);
     }
   }, [location.pathname]);
+
+  // Restore clock state and load notifications on initial render
+  useEffect(() => {
+    checkTodayClockStatus();
+    fetchNotifications();
+  }, []);
+
+  // Clock elapsed timer sync
+  useEffect(() => {
+    let intervalId;
+    if (clockedIn) {
+      intervalId = setInterval(() => {
+        updateElapsedTime();
+      }, 1000);
+    }
+    return () => clearInterval(intervalId);
+  }, [clockedIn]);
 
   const handleTabChange = (tabId) => {
     setCurrentTab(tabId);

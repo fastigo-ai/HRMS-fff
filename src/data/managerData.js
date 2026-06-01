@@ -1,5 +1,5 @@
 export const initialProjects = [
-  { id: 'p1', name: 'WorkSphere Core Refactor', dept: 'Engineering', status: 'In Progress', progress: 76, teamSize: 5, budget: '₹8.5L', health: 'Healthy' },
+  { id: 'p1', name: 'Fastigo X Core Refactor', dept: 'Engineering', status: 'In Progress', progress: 76, teamSize: 5, budget: '₹8.5L', health: 'Healthy' },
   { id: 'p2', name: 'AI Recruitment Integration', dept: 'Product Engineering', status: 'In Progress', progress: 42, teamSize: 3, budget: '₹4.2L', health: 'Healthy' },
   { id: 'p3', name: 'Global Payroll Vault', dept: 'Security & Compliance', status: 'Delayed', progress: 18, teamSize: 4, budget: '₹11L', health: 'At Risk' },
   { id: 'p4', name: 'Atomic Typography Tokens', dept: 'Experience Design', status: 'Completed', progress: 100, teamSize: 2, budget: '₹1.5L', health: 'Completed' }
@@ -15,7 +15,7 @@ export const initialTeamMembers = [
     status: 'Active', 
     avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=64&h=64', 
     completionRate: 92, 
-    activeProject: 'WorkSphere Core Refactor' 
+    activeProject: 'Fastigo X Core Refactor' 
   },
   { 
     id: 2, 
@@ -53,7 +53,7 @@ export const initialTeamMembers = [
 ];
 
 export const initialTimesheets = [
-  { id: 201, name: 'Sarah Wu', project: 'WorkSphere Core Refactor', period: 'Oct 12 - Oct 18, 2026', hours: 42, status: 'Pending', details: 'Refactored React hooks, modularized custom sidebar and routing panels.' },
+  { id: 201, name: 'Sarah Wu', project: 'Fastigo X Core Refactor', period: 'Oct 12 - Oct 18, 2026', hours: 42, status: 'Pending', details: 'Refactored React hooks, modularized custom sidebar and routing panels.' },
   { id: 202, name: 'Marcus Thorne', project: 'Global Payroll Vault', period: 'Oct 12 - Oct 18, 2026', hours: 48, status: 'Pending', details: 'Engineered cryptographic salting algorithms and tax withhold cache triggers.' },
   { id: 203, name: 'Julian Day', project: 'Atomic Typography Tokens', period: 'Oct 12 - Oct 18, 2026', hours: 35, status: 'Approved', details: 'Reviewed letter spacing ratios and established visual tokens layout.' }
 ];

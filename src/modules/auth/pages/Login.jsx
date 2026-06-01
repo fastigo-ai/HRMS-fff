@@ -19,7 +19,7 @@ export default function Login() {
       role: 'standard_employee',
       name: 'Alex Johnson',
       label: 'Employee Preset',
-      email: 'employee@worksphere.io',
+      email: 'employee@Fastigo X.io',
       desc: 'Senior Developer',
       icon: User,
       color: 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/50'
@@ -28,7 +28,7 @@ export default function Login() {
       role: 'manager',
       name: 'David Miller',
       label: 'Manager Preset',
-      email: 'manager@worksphere.io',
+      email: 'manager@Fastigo X.io',
       desc: 'Engineering Lead',
       icon: Briefcase,
       color: 'bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100 dark:bg-violet-950/20 dark:text-violet-400 dark:border-violet-900/50'
@@ -37,7 +37,7 @@ export default function Login() {
       role: 'hr_admin',
       name: 'Sarah Jenkins',
       label: 'HR Admin Preset',
-      email: 'hr@worksphere.io',
+      email: 'hr@Fastigo X.io',
       desc: 'HR Director',
       icon: Shield,
       color: 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 dark:bg-indigo-950/20 dark:text-indigo-400 dark:border-indigo-900/50'
@@ -53,7 +53,7 @@ export default function Login() {
     setLoading(false);
     
     if (result.success) {
-      triggerToast(`Welcome back, ${presetEmail === 'hr@worksphere.io' ? 'Sarah' : presetEmail === 'manager@worksphere.io' ? 'David' : 'Alex'}! Session synchronized.`);
+      triggerToast(`Welcome back, ${presetEmail === 'hr@Fastigo X.io' ? 'Sarah' : presetEmail === 'manager@Fastigo X.io' ? 'David' : 'Alex'}! Session synchronized.`);
       navigate(result.role === 'hr_admin' ? '/hr/dashboard' : result.role === 'manager' ? '/manager/dashboard' : '/employee/dashboard');
     } else {
       triggerToast(result.error, 'error');
@@ -94,7 +94,7 @@ export default function Login() {
               W
             </div>
             <div>
-              <h1 className="text-2xl font-black text-slate-900 dark:text-white leading-none">WorkSphere</h1>
+              <h1 className="text-2xl font-black text-slate-900 dark:text-white leading-none">Fastigo X</h1>
               <span className="text-xs text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-widest">Enterprise HRMS & SaaS</span>
             </div>
           </div>
@@ -107,7 +107,7 @@ export default function Login() {
               </span>
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-              WorkSphere is an enterprise-grade HR SaaS platform organizing department hierarchies, geofenced tracking boundaries, payroll calculators, sprint workflows, and real-time approvals.
+              Fastigo X is an enterprise-grade HR SaaS platform organizing department hierarchies, geofenced tracking boundaries, payroll calculators, sprint workflows, and real-time approvals.
             </p>
           </div>
 
@@ -157,7 +157,7 @@ export default function Login() {
                     value={email}
                     disabled={loading}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="e.g. employee@worksphere.io"
+                    placeholder="e.g. employee@Fastigo X.io"
                     className="w-full pl-10 pr-4 py-2.5 text-xs bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-800 rounded-2xl focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/5 transition text-slate-800 dark:text-white"
                   />
                 </div>

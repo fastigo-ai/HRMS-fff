@@ -14,9 +14,13 @@ import {
   FileText,
   UserPlus,
   BookOpen,
-  PieChart
+  PieChart,
+  Megaphone,
+  Trash2,
+  Pin
 } from 'lucide-react';
 import { DatabaseService } from '../../services/api';
+import { hrService } from '../../services/hrService';
 
 export default function HRDashboard({
   setCurrentTab,
@@ -24,6 +28,16 @@ export default function HRDashboard({
 }) {
   const [statsData, setStatsData] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const [announcements, setAnnouncements] = useState([]);
+  const [announcementsLoading, setAnnouncementsLoading] = useState(true);
+  const [newAnnouncement, setNewAnnouncement] = useState({
+    title: '',
+    content: '',
+    category: 'General',
+    pinned: false
+  });
+  const [postingAnnouncement, setPostingAnnouncement] = useState(false);
 
   useEffect(() => {
     const loadStats = async () => {
@@ -38,7 +52,49 @@ export default function HRDashboard({
       }
     };
     loadStats();
+    fetchAnnouncements();
   }, []);
+
+  const fetchAnnouncements = async () => {
+    try {
+      setAnnouncementsLoading(true);
+      const data = await hrService.getAnnouncements();
+      setAnnouncements(data);
+    } catch (err) {
+      console.error("Failed to load announcements:", err);
+    } finally {
+      setAnnouncementsLoading(false);
+    }
+  };
+
+  const handlePostAnnouncement = async (e) => {
+    e.preventDefault();
+    if (!newAnnouncement.title.trim() || !newAnnouncement.content.trim()) {
+      triggerToast('Title and content are required!', 'error');
+      return;
+    }
+    setPostingAnnouncement(true);
+    try {
+      await hrService.createAnnouncement(newAnnouncement);
+      triggerToast('System announcement successfully broadcasted!');
+      setNewAnnouncement({ title: '', content: '', category: 'General', pinned: false });
+      fetchAnnouncements();
+    } catch (err) {
+      triggerToast(err.message || 'Failed to post announcement', 'error');
+    } finally {
+      setPostingAnnouncement(false);
+    }
+  };
+
+  const handleDeleteAnnouncement = async (id) => {
+    try {
+      await hrService.deleteAnnouncement(id);
+      triggerToast('Announcement deleted.');
+      fetchAnnouncements();
+    } catch (err) {
+      triggerToast('Failed to delete announcement.', 'error');
+    }
+  };
 
   if (loading) {
     return (
@@ -90,7 +146,7 @@ export default function HRDashboard({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-slate-900 dark:text-white">Overview</h2>
-          <p className="text-xs text-slate-400 dark:text-slate-500">Welcome back. Here's what's happening at WorkSphere today.</p>
+          <p className="text-xs text-slate-400 dark:text-slate-500">Welcome back. Here's what's happening at Fastigo X today.</p>
         </div>
         
         {/* Date block */}
@@ -262,6 +318,138 @@ export default function HRDashboard({
           </div>
         </div>
 
+      </div>
+
+      {/* Announcement Hub (Component 8 - HR Announcement Broadcaster & Feed CRUD) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Active Broadcasts Feed (2/3) */}
+        <div className="lg:col-span-2 bg-white dark:bg-slate-950 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm space-y-4">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-50 dark:border-slate-900">
+            <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+              <Megaphone className="w-4 h-4 text-indigo-500" />
+              Active System Broadcasts
+            </h3>
+            <span className="text-[10px] font-bold text-slate-400">Total: {announcements.length}</span>
+          </div>
+
+          {announcementsLoading ? (
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500"></div>
+            </div>
+          ) : announcements.length > 0 ? (
+            <div className="space-y-3.5 max-h-80 overflow-y-auto pr-1">
+              {announcements.map((ann) => (
+                <div key={ann._id} className="p-4 bg-slate-50 dark:bg-slate-900/60 border border-slate-150 dark:border-slate-800/80 rounded-xl flex items-start justify-between gap-4">
+                  <div className="space-y-1.5 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="text-xs font-bold text-slate-800 dark:text-white flex items-center gap-1.5">
+                        {ann.pinned && <Pin className="w-3.5 h-3.5 text-indigo-500 shrink-0 fill-indigo-500" />}
+                        {ann.title}
+                      </h4>
+                      <span className={`text-[8px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                        ann.category === 'Alert' ? 'bg-rose-500/10 text-rose-500 border-rose-500/20' :
+                        ann.category === 'Policy' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
+                        ann.category === 'Event' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                        'bg-indigo-500/10 text-indigo-500 border-indigo-500/20'
+                      } border`}>
+                        {ann.category}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-550 dark:text-slate-400 leading-normal">
+                      {ann.content}
+                    </p>
+                    <div className="text-[9px] text-slate-400 flex items-center gap-2">
+                      <span>Posted by {ann.createdBy || 'HR Department'}</span>
+                      <span>•</span>
+                      <span>{new Date(ann.createdAt || Date.now()).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => handleDeleteAnnouncement(ann._id)}
+                    className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg text-slate-450 hover:text-rose-500 transition shrink-0"
+                    title="Delete Announcement"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-8 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl text-center flex flex-col items-center justify-center space-y-2">
+              <Megaphone className="w-7 h-7 text-slate-350 dark:text-slate-650" />
+              <h4 className="text-xs font-bold text-slate-500">No active circulars found</h4>
+              <p className="text-[10px] text-slate-400 max-w-xs">Use the broadcaster widget to draft and post circular alerts to all employee dashboards.</p>
+            </div>
+          )}
+        </div>
+
+        {/* Announcement Broadcaster Form (1/3) */}
+        <div className="bg-white dark:bg-slate-950 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm space-y-4">
+          <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+            <Pin className="w-4 h-4 text-indigo-500" />
+            Announcement Broadcaster
+          </h3>
+          
+          <form onSubmit={handlePostAnnouncement} className="space-y-3.5">
+            <div>
+              <label className="text-[9px] font-bold text-slate-400 block mb-1">CIRCULAR TITLE</label>
+              <input 
+                type="text"
+                placeholder="e.g. Annual Diwali Celebration or Policy Update"
+                value={newAnnouncement.title}
+                onChange={(e) => setNewAnnouncement({ ...newAnnouncement, title: e.target.value })}
+                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-white animate-transition"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[9px] font-bold text-slate-400 block mb-1">CATEGORY</label>
+                <select
+                  value={newAnnouncement.category}
+                  onChange={(e) => setNewAnnouncement({ ...newAnnouncement, category: e.target.value })}
+                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-white"
+                >
+                  <option value="General">General</option>
+                  <option value="Policy">Policy</option>
+                  <option value="Event">Event</option>
+                  <option value="Alert">Alert</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col justify-end">
+                <label className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl cursor-pointer hover:border-indigo-200 transition h-[36px]">
+                  <input 
+                    type="checkbox"
+                    checked={newAnnouncement.pinned}
+                    onChange={(e) => setNewAnnouncement({ ...newAnnouncement, pinned: e.target.checked })}
+                    className="rounded text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5"
+                  />
+                  <span className="text-[10px] font-bold text-slate-600 dark:text-slate-350">PIN TO HOME</span>
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[9px] font-bold text-slate-400 block mb-1">CONTENT BODY</label>
+              <textarea 
+                placeholder="Draft the announcement details clearly..."
+                value={newAnnouncement.content}
+                onChange={(e) => setNewAnnouncement({ ...newAnnouncement, content: e.target.value })}
+                rows={3}
+                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-white"
+              />
+            </div>
+
+            <button 
+              type="submit"
+              disabled={postingAnnouncement}
+              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition shadow-sm"
+            >
+              {postingAnnouncement ? 'Broadcasting...' : 'Publish Circular Alert'}
+            </button>
+          </form>
+        </div>
       </div>
 
       {/* Bottom Grid Split */}

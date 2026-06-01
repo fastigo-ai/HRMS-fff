@@ -42,6 +42,11 @@ const LazyManagerTasks = lazy(() => import('../modules/manager/pages/Tasks'));
 const LazyManagerApprovals = lazy(() => import('../modules/manager/pages/Approvals'));
 const LazyManagerMilestones = lazy(() => import('../modules/manager/pages/Milestones'));
 const LazyManagerProfile = lazy(() => import('../modules/manager/pages/Profile'));
+const LazyHRSalesAudit = lazy(() => import('../modules/hr/pages/SalesAudit'));
+const LazyManagerSalesAudit = lazy(() => import('../modules/manager/pages/SalesAudit'));
+const LazyEmployeeHolidays = lazy(() => import('../modules/employee/pages/Holidays'));
+const LazyHRHolidays = lazy(() => import('../modules/hr/pages/Holidays'));
+const LazyManagerHolidays = lazy(() => import('../modules/manager/pages/Holidays'));
 
 const PageSuspense = ({ children }) => (
   <Suspense fallback={<Loader size="lg" text="Decompressing modular bundle..." />}>
@@ -107,7 +112,8 @@ export const appRouter = createBrowserRouter([
       { path: 'payroll', element: <PageSuspense><LazyEmployeePayroll /></PageSuspense> },
       { path: 'tasks', element: <PageSuspense><LazyEmployeeTasks /></PageSuspense> },
       { path: 'notifications', element: <PageSuspense><LazyEmployeeNotifications /></PageSuspense> },
-      { path: 'settings', element: <PageSuspense><LazyEmployeeSettings /></PageSuspense> }
+      { path: 'settings', element: <PageSuspense><LazyEmployeeSettings /></PageSuspense> },
+      { path: 'holidays', element: <PageSuspense><LazyEmployeeHolidays /></PageSuspense> }
     ]
   },
   {
@@ -129,7 +135,9 @@ export const appRouter = createBrowserRouter([
       { path: 'payroll', element: <PageSuspense><LazyHRPayroll /></PageSuspense> },
       { path: 'recruitment', element: <PageSuspense><LazyHRRecruitment /></PageSuspense> },
       { path: 'reports', element: <PageSuspense><LazyHRReports /></PageSuspense> },
-      { path: 'profile', element: <PageSuspense><LazyHRProfile /></PageSuspense> }
+      { path: 'sales-audit', element: <PageSuspense><LazyHRSalesAudit /></PageSuspense> },
+      { path: 'profile', element: <PageSuspense><LazyHRProfile /></PageSuspense> },
+      { path: 'holidays', element: <PageSuspense><LazyHRHolidays /></PageSuspense> }
     ]
   },
   {
@@ -148,7 +156,9 @@ export const appRouter = createBrowserRouter([
       { path: 'tasks', element: <PageSuspense><LazyManagerTasks /></PageSuspense> },
       { path: 'approvals', element: <PageSuspense><LazyManagerApprovals /></PageSuspense> },
       { path: 'milestones', element: <PageSuspense><LazyManagerMilestones /></PageSuspense> },
-      { path: 'profile', element: <PageSuspense><LazyManagerProfile /></PageSuspense> }
+      { path: 'sales-audit', element: <PageSuspense><LazyManagerSalesAudit /></PageSuspense> },
+      { path: 'profile', element: <PageSuspense><LazyManagerProfile /></PageSuspense> },
+      { path: 'holidays', element: <PageSuspense><LazyManagerHolidays /></PageSuspense> }
     ]
   },
   {

@@ -80,20 +80,7 @@ export default function Header({
           </div>
         )}
 
-        {/* Dynamic Sandbox Role switcher */}
-        <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-slate-100 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-          <Shield className="w-4 h-4 text-indigo-500" />
-          <select 
-            value={userRole} 
-            onChange={(e) => setUserRole(e.target.value)}
-            className="text-xs font-semibold bg-transparent border-none focus:outline-none focus:ring-0 text-slate-700 dark:text-slate-300 cursor-pointer"
-          >
-            <option value="standard_employee">Employee View</option>
-            <option value="hr_admin">HR Admin View</option>
-            <option value="manager">Manager View</option>
-            <option value="system_admin">System Admin View</option>
-          </select>
-        </div>
+
 
         {/* Theme Switcher Button */}
         <button 

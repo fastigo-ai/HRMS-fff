@@ -1,9 +1,10 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { useSelector, useDispatch } from 'react-redux';
 import { useMemo } from 'react';
+import { DatabaseService } from '../services/api';
 
 const initialState = {
-  theme: localStorage.getItem('worksphere_theme') || 'light',
+  theme: localStorage.getItem('Fastigo X_theme') || 'light',
   sidebarOpen: false,
   toast: null,
   notifications: [
@@ -57,11 +58,14 @@ const uiSlice = createSlice({
         },
         ...state.notifications
       ];
+    },
+    setNotifications: (state, action) => {
+      state.notifications = action.payload;
     }
   }
 });
 
-export const { setSidebarOpen, setTheme, setToast, markNotificationRead, addNotification } = uiSlice.actions;
+export const { setSidebarOpen, setTheme, setToast, markNotificationRead, addNotification, setNotifications } = uiSlice.actions;
 
 export const useUiStore = (selectorFn) => {
   const dispatch = useDispatch();
@@ -78,7 +82,7 @@ export const useUiStore = (selectorFn) => {
       toggleTheme: () => {
         const nextTheme = uiState.theme === 'light' ? 'dark' : 'light';
         dispatch(setTheme(nextTheme));
-        localStorage.setItem('worksphere_theme', nextTheme);
+        localStorage.setItem('Fastigo X_theme', nextTheme);
         const rootEl = document.documentElement;
         if (nextTheme === 'dark') {
           rootEl.classList.add('dark');
@@ -104,8 +108,22 @@ export const useUiStore = (selectorFn) => {
         }, 4500);
       },
 
-      markNotificationRead: (id) => {
-        dispatch(markNotificationRead(id));
+      fetchNotifications: async () => {
+        try {
+          const list = await DatabaseService.getNotifications();
+          dispatch(setNotifications(list));
+        } catch (err) {
+          console.error("Failed to load notifications from backend:", err);
+        }
+      },
+
+      markNotificationRead: async () => {
+        try {
+          const list = await DatabaseService.markNotificationsAsRead();
+          dispatch(setNotifications(list));
+        } catch (err) {
+          console.error("Failed to mark notifications read on backend:", err);
+        }
       },
 
       addNotification: (notif) => {

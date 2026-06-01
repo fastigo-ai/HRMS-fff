@@ -26,6 +26,7 @@ export default function Sidebar({
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'attendance', label: 'Attendance', icon: Clock },
     { id: 'leaves', label: 'Leaves', icon: CalendarDays },
+    { id: 'holidays', label: 'Holiday Calendar', icon: CalendarDays },
     { id: 'payroll', label: 'Payroll', icon: IndianRupee },
     { id: 'tasks', label: 'Tasks', icon: CheckSquare },
     { id: 'notifications', label: 'Notifications', icon: Bell, badgeCount: unreadNotificationsCount },
@@ -45,7 +46,7 @@ export default function Sidebar({
               W
             </div>
             <div>
-              <h1 className="text-lg font-bold text-slate-900 dark:text-white leading-none">WorkSphere</h1>
+              <h1 className="text-lg font-bold text-slate-900 dark:text-white leading-none">Fastigo X</h1>
               <span className="text-[10px] text-indigo-500 font-bold tracking-wider">HRMS PORTAL</span>
             </div>
           </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Calendar,
   AlertCircle,
@@ -10,6 +10,7 @@ import {
   ChevronDown,
   Plus
 } from 'lucide-react';
+import { DatabaseService } from '../../services/api';
 
 export default function WFHRequest({
   setCurrentTab,
@@ -22,30 +23,39 @@ export default function WFHRequest({
     reason: ''
   });
 
-  const [historyList, setHistoryList] = useState([
-    { id: 1, title: 'Client Support - Critical Fix', duration: '1 Day • 12 Oct 2023', status: 'Approved' },
-    { id: 2, title: 'Personal Appointment', duration: '0.5 Day • 05 Oct 2023', status: 'Rejected' },
-    { id: 3, title: 'Severe Weather Alert', duration: '2 Days • 28 - 29 Sep 2023', status: 'Approved' },
-  ]);
+  const [historyList, setHistoryList] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    const fetchWFH = async () => {
+      try {
+        setLoading(true);
+        const data = await DatabaseService.getWFHRequests();
+        setHistoryList(data || []);
+      } catch (err) {
+        console.error("Failed to load WFH requests:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchWFH();
+  }, []);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!wfhForm.startDate || !wfhForm.endDate || !wfhForm.reason) {
       triggerToast('Please fill out all fields.', 'error');
       return;
     }
     
-    // Add to history list simulated
-    const newHist = {
-      id: historyList.length + 1,
-      title: wfhForm.reason,
-      duration: `1 Day • ${wfhForm.startDate}`,
-      status: 'Pending'
-    };
-    
-    setHistoryList([newHist, ...historyList]);
-    setWfhForm({ startDate: '', endDate: '', type: 'Full Day', reason: '' });
-    triggerToast('Work From Home request submitted successfully!');
+    try {
+      const newWfh = await DatabaseService.createWFHRequest(wfhForm);
+      setHistoryList([newWfh, ...historyList]);
+      setWfhForm({ startDate: '', endDate: '', type: 'Full Day', reason: '' });
+      triggerToast('Work From Home request submitted successfully!', 'success');
+    } catch (err) {
+      triggerToast(err.message || 'Failed to submit WFH request.', 'error');
+    }
   };
 
   return (
@@ -162,29 +172,34 @@ export default function WFHRequest({
               </button>
             </div>
 
-            <div className="space-y-3">
-              {historyList.map(item => (
-                <div key={item.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-900 rounded-xl">
-                  <div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-1 rounded uppercase">OCT 12</span>
-                      <h4 className="text-xs font-bold text-slate-800 dark:text-white">{item.title}</h4>
+              {historyList.map(item => {
+                const title = item.reason || item.title;
+                const formattedDate = item.startDate ? new Date(item.startDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) : 'OCT 12';
+                const durationText = item.startDate 
+                  ? `${item.type} • ${new Date(item.startDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })} to ${new Date(item.endDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}` 
+                  : item.duration;
+                return (
+                  <div key={item._id || item.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-900 rounded-xl">
+                    <div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-1 rounded uppercase">{formattedDate}</span>
+                        <h4 className="text-xs font-bold text-slate-800 dark:text-white truncate max-w-xs">{title}</h4>
+                      </div>
+                      <p className="text-[10px] text-slate-400 font-semibold mt-1 ml-[54px]">{durationText}</p>
                     </div>
-                    <p className="text-[10px] text-slate-400 font-semibold mt-1 ml-[54px]">{item.duration}</p>
+                    
+                    <span className={`px-2.5 py-1 text-[9px] font-bold rounded-full uppercase ${
+                      item.status === 'Approved' 
+                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400' 
+                        : item.status === 'Rejected' 
+                          ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/20 dark:text-rose-400'
+                          : 'bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400'
+                    }`}>
+                      {item.status}
+                    </span>
                   </div>
-                  
-                  <span className={`px-2.5 py-1 text-[9px] font-bold rounded-full uppercase ${
-                    item.status === 'Approved' 
-                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400' 
-                      : item.status === 'Rejected' 
-                        ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/20 dark:text-rose-400'
-                        : 'bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400'
-                  }`}>
-                    {item.status}
-                  </span>
-                </div>
-              ))}
-            </div>
+                );
+              })}
           </div>
 
         </div>

@@ -347,13 +347,42 @@ export default function HRDepartments({
 
             </div>
 
+            {/* Drawer Footer Actions */}
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-900 flex justify-between gap-3 mt-auto">
+              <button 
+                type="button" 
+                onClick={async () => {
+                  if (window.confirm(`Are you sure you want to permanently delete the department "${selectedDept.name}" and remove it from the organization directory?`)) {
+                    try {
+                      const updated = await DatabaseService.deleteDepartment(selectedDept.id);
+                      setDepts(updated);
+                      setSelectedDept(null);
+                      triggerToast(`Department "${selectedDept.name}" successfully pruned!`);
+                    } catch (err) {
+                      triggerToast('Failed to prune department record.', 'error');
+                    }
+                  }
+                }}
+                className="px-4 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-950 text-rose-650 rounded-xl text-xs font-bold transition"
+              >
+                Delete Department
+              </button>
+              <button 
+                type="button" 
+                onClick={() => setSelectedDept(null)}
+                className="px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:text-slate-350 dark:hover:bg-slate-900 text-xs font-bold transition"
+              >
+                Close Drawer
+              </button>
+            </div>
+
           </div>
         </div>
       )}
 
       {/* Footer details */}
       <footer className="pt-8 pb-4 border-t border-slate-100 dark:border-slate-900 flex flex-col sm:flex-row items-center justify-between text-[10px] text-slate-400 font-semibold gap-3">
-        <span>© 2024 WorkSphere Cloud. All rights reserved.</span>
+        <span>© 2024 Fastigo X Cloud. All rights reserved.</span>
         <div className="flex gap-4">
           <button onClick={() => triggerToast('Status: Healthy')} className="hover:text-indigo-600">System Status</button>
           <button onClick={() => triggerToast('Privacy Policies')} className="hover:text-indigo-600">Privacy Policy</button>

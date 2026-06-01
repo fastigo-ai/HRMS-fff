@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 
 const getStoredProfile = () => {
   try {
-    const raw = localStorage.getItem('worksphere_profile');
+    const raw = localStorage.getItem('Fastigo X_profile');
     return raw ? JSON.parse(raw) : null;
   } catch (e) {
     return null;
@@ -12,8 +12,8 @@ const getStoredProfile = () => {
 };
 
 const initialState = {
-  isAuthenticated: localStorage.getItem('worksphere_auth') === 'true',
-  userRole: localStorage.getItem('worksphere_role') || null,
+  isAuthenticated: localStorage.getItem('Fastigo X_auth') === 'true',
+  userRole: localStorage.getItem('Fastigo X_role') || null,
   profileData: getStoredProfile(),
   currentTab: 'dashboard',
   clockedIn: false,
@@ -57,7 +57,7 @@ export const { setAuth, setRole, setProfile, setCurrentTab, setClockState, setEl
 const defaultUsers = [
   {
     name: 'Sarah Jenkins',
-    email: 'hr@worksphere.io',
+    email: 'hr@Fastigo X.io',
     password: 'password123',
     role: 'hr_admin',
     position: 'HR Director',
@@ -76,7 +76,7 @@ const defaultUsers = [
   },
   {
     name: 'David Miller',
-    email: 'manager@worksphere.io',
+    email: 'manager@Fastigo X.io',
     password: 'password123',
     role: 'manager',
     position: 'Engineering Lead & PM',
@@ -95,7 +95,7 @@ const defaultUsers = [
   },
   {
     name: 'Alex Johnson',
-    email: 'employee@worksphere.io',
+    email: 'employee@Fastigo X.io',
     password: 'password123',
     role: 'standard_employee',
     position: 'Senior Developer',
@@ -114,8 +114,8 @@ const defaultUsers = [
   }
 ];
 
-if (!localStorage.getItem('worksphere_db_users')) {
-  localStorage.setItem('worksphere_db_users', JSON.stringify(defaultUsers));
+if (!localStorage.getItem('Fastigo X_db_users')) {
+  localStorage.setItem('Fastigo X_db_users', JSON.stringify(defaultUsers));
 }
 
 export const useAuthStore = (selectorFn) => {
@@ -128,7 +128,7 @@ export const useAuthStore = (selectorFn) => {
 
       setUserRole: (role) => {
         dispatch(setRole(role));
-        localStorage.setItem('worksphere_role', role);
+        localStorage.setItem('Fastigo X_role', role);
       },
 
       setCurrentTab: (tab) => {
@@ -158,10 +158,10 @@ export const useAuthStore = (selectorFn) => {
             profileData: user
           }));
 
-          localStorage.setItem('worksphere_auth', 'true');
-          localStorage.setItem('worksphere_token', token);
-          localStorage.setItem('worksphere_role', user.role);
-          localStorage.setItem('worksphere_profile', JSON.stringify(user));
+          localStorage.setItem('Fastigo X_auth', 'true');
+          localStorage.setItem('Fastigo X_token', token);
+          localStorage.setItem('Fastigo X_role', user.role);
+          localStorage.setItem('Fastigo X_profile', JSON.stringify(user));
 
           return { success: true, role: user.role };
         } catch (err) {
@@ -196,10 +196,10 @@ export const useAuthStore = (selectorFn) => {
             profileData: user
           }));
 
-          localStorage.setItem('worksphere_auth', 'true');
-          localStorage.setItem('worksphere_token', token);
-          localStorage.setItem('worksphere_role', user.role);
-          localStorage.setItem('worksphere_profile', JSON.stringify(user));
+          localStorage.setItem('Fastigo X_auth', 'true');
+          localStorage.setItem('Fastigo X_token', token);
+          localStorage.setItem('Fastigo X_role', user.role);
+          localStorage.setItem('Fastigo X_profile', JSON.stringify(user));
 
           return { success: true, role: user.role };
         } catch (err) {
@@ -227,10 +227,10 @@ export const useAuthStore = (selectorFn) => {
         }));
         dispatch(setElapsedTime('00:00:00'));
 
-        localStorage.removeItem('worksphere_auth');
-        localStorage.removeItem('worksphere_token');
-        localStorage.removeItem('worksphere_role');
-        localStorage.removeItem('worksphere_profile');
+        localStorage.removeItem('Fastigo X_auth');
+        localStorage.removeItem('Fastigo X_token');
+        localStorage.removeItem('Fastigo X_role');
+        localStorage.removeItem('Fastigo X_profile');
       },
 
       refreshSession: async () => {
@@ -252,10 +252,10 @@ export const useAuthStore = (selectorFn) => {
             profileData: user
           }));
 
-          localStorage.setItem('worksphere_auth', 'true');
-          localStorage.setItem('worksphere_token', token);
-          localStorage.setItem('worksphere_role', user.role);
-          localStorage.setItem('worksphere_profile', JSON.stringify(user));
+          localStorage.setItem('Fastigo X_auth', 'true');
+          localStorage.setItem('Fastigo X_token', token);
+          localStorage.setItem('Fastigo X_role', user.role);
+          localStorage.setItem('Fastigo X_profile', JSON.stringify(user));
 
           return { success: true };
         } catch (err) {
@@ -265,7 +265,7 @@ export const useAuthStore = (selectorFn) => {
 
       updateProfile: async (newProfile) => {
         try {
-          const token = localStorage.getItem('worksphere_token');
+          const token = localStorage.getItem('Fastigo X_token');
           const res = await fetch("http://localhost:8000/api/auth/profile", {
             method: "PATCH",
             headers: {
@@ -292,7 +292,7 @@ export const useAuthStore = (selectorFn) => {
           const user = data.data.user;
 
           dispatch(setProfile(user));
-          localStorage.setItem('worksphere_profile', JSON.stringify(user));
+          localStorage.setItem('Fastigo X_profile', JSON.stringify(user));
 
           return { success: true };
         } catch (err) {
@@ -306,7 +306,7 @@ export const useAuthStore = (selectorFn) => {
 
       toggleClock: async (triggerToast) => {
         const { clockedIn, elapsedTime } = authState;
-        const token = localStorage.getItem('worksphere_token');
+        const token = localStorage.getItem('Fastigo X_token');
         try {
           if (!clockedIn) {
             const res = await fetch("http://localhost:8000/api/attendance/clock-in", {
@@ -349,7 +349,7 @@ export const useAuthStore = (selectorFn) => {
       },
 
       checkTodayClockStatus: async () => {
-        const token = localStorage.getItem('worksphere_token');
+        const token = localStorage.getItem('Fastigo X_token');
         try {
           const res = await fetch("http://localhost:8000/api/attendance/today", {
             headers: {

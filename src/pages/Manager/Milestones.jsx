@@ -14,7 +14,7 @@ export default function PMMilestones() {
   const roadmapData = [
     {
       id: 'r1',
-      project: 'WorkSphere Core Refactor',
+      project: 'Fastigo X Core Refactor',
       dept: 'Engineering',
       phases: [
         { name: 'Database API Migration', status: 'Completed', date: 'Oct 10', duration: 'w-1/4 bg-emerald-500' },

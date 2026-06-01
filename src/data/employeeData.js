@@ -4,7 +4,7 @@ export const initialProfileData = {
   department: 'Engineering & SaaS Architecture',
   empId: 'WS-88402',
   joinDate: 'Jan 15, 2023',
-  email: 'alex.johnson@worksphere.io',
+  email: 'alex.johnson@Fastigo X.io',
   phone: '+1 (555) 382-9029',
   address: '422 Willow Lane, Austin, TX 78701',
   skills: ['React / Next.js', 'Tailwind CSS v4', 'NodeJS / Express', 'Enterprise RBAC Architectures', 'Geofencing APIs'],

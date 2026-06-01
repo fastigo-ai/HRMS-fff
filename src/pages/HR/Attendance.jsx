@@ -1,18 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   AlertTriangle,
-  ArrowUpRight,
-  ArrowDownRight,
-  TrendingUp,
   MapPin,
-  Clock,
   MoreVertical,
   Filter,
   ArrowUpDown,
-  CheckCircle,
-  HelpCircle,
-  AlertCircle,
-  ExternalLink,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
@@ -26,6 +18,13 @@ export default function HRAttendance({
   const [anomalies, setAnomalies] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [overviewStats, setOverviewStats] = useState({
+    presentToday: 0,
+    lateToday: 0,
+    wfhToday: 0,
+    complianceRate: 100,
+    totalEmployees: 0
+  });
 
   // Load attendance data asynchronously
   useEffect(() => {
@@ -36,21 +35,24 @@ export default function HRAttendance({
         setCalendarDays(data.cells);
         setAnomalies(data.anomalies);
         setAuditLogs(data.records);
-      } catch (err) {
+        if (data.stats) {
+          setOverviewStats(data.stats);
+        }
+      } catch {
         triggerToast('Failed to fetch attendance audits.', 'error');
       } finally {
         setLoading(false);
       }
     };
     loadLogs();
-  }, []);
+  }, [triggerToast]);
 
   const handleResolveAnomaly = async (id, name) => {
     try {
       setAnomalies(prev => prev.filter(an => an.id !== id));
       triggerToast(`Anomaly case for ${name} resolved and logged!`);
       await DatabaseService.resolveAnomaly(id);
-    } catch (err) {
+    } catch {
       triggerToast('Error updating anomaly logs.', 'error');
     }
   };
@@ -60,6 +62,7 @@ export default function HRAttendance({
       case 'high': return 'bg-indigo-700 text-white';
       case 'mid': return 'bg-indigo-400 text-white';
       case 'low': return 'bg-indigo-150 dark:bg-indigo-950/60 text-indigo-700';
+      case 'none': return 'bg-slate-100 dark:bg-slate-900 text-slate-400 dark:text-slate-605';
       default: return 'bg-rose-100 dark:bg-rose-950/40 text-rose-700';
     }
   };
@@ -83,10 +86,10 @@ export default function HRAttendance({
   }
 
   const stats = [
-    { label: 'Present Today', value: '1,482', change: '+2.4%', changeType: 'up', sub: null },
-    { label: 'Late Arrivals', value: '12', change: '-5%', changeType: 'down', sub: '6 from Engineering Dept' },
-    { label: 'WFH Employees', value: '28', sub: 'Active remote channels', barSegments: [30, 20, 50] },
-    { label: 'Compliance Rate', value: '98.2%', sub: 'Above Target', progressArc: 98.2 }
+    { label: 'Present Today', value: overviewStats.presentToday.toLocaleString(), change: null, sub: `${overviewStats.totalEmployees} total registered` },
+    { label: 'Late Arrivals', value: overviewStats.lateToday.toLocaleString(), change: null, sub: 'Requires override documentation' },
+    { label: 'WFH Employees', value: overviewStats.wfhToday.toLocaleString(), sub: 'Active remote channels', barSegments: [30, 20, 50] },
+    { label: 'Compliance Rate', value: `${overviewStats.complianceRate.toFixed(1)}%`, sub: 'Calculated today', progressArc: overviewStats.complianceRate }
   ];
 
   return (

@@ -34,6 +34,8 @@ import {
   Volume2,
 } from "lucide-react";
 import { useUiStore } from "../../store/uiStore";
+import { salesService } from "../../services/salesService";
+import { DatabaseService } from "../../services/api";
 
 // Circular Radial Progress widget styled with HSL border-rings
 const CircularProgress = ({
@@ -97,146 +99,75 @@ export default function Dashboard({
     totalHours: 0,
     avgCheckIn: "09:00 AM",
   },
+  profileData,
 }) {
   const { triggerToast } = useUiStore();
+  const [liveAnnouncements, setLiveAnnouncements] = useState([]);
+  const [liveHolidays, setLiveHolidays] = useState([]);
+  const [onboardingChecklist, setOnboardingChecklist] = useState(null);
+
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      try {
+        const anns = await DatabaseService.getAnnouncements();
+        setLiveAnnouncements(anns);
+        const hols = await DatabaseService.getHolidays();
+        if (hols && hols.length > 0) {
+          setLiveHolidays(hols.map(h => ({
+            date: new Date(h.date).toLocaleDateString("en-US", { day: 'numeric', month: 'short', year: 'numeric' }),
+            name: h.name,
+            day: new Date(h.date).toLocaleDateString("en-US", { weekday: 'long' }),
+            isOptional: h.isOptional
+          })));
+        }
+        const onboard = await DatabaseService.getOnboardingTasks();
+        setOnboardingChecklist(onboard);
+      } catch (err) {
+        console.error("Failed to load dashboard dynamic data:", err);
+      }
+    };
+    loadDashboardData();
+  }, []);
+
   const [activePortal, setActivePortal] = useState("hr"); // 'hr' | 'sales'
-  const [salesRole, setSalesRole] = useState("bda"); // 'bda' | 'bdm'
+  const [salesRole, setSalesRole] = useState(() => {
+    if (profileData?.position?.toLowerCase().includes("manager") || profileData?.position?.toLowerCase().includes("bdm")) {
+      return "bdm";
+    }
+    return "bda";
+  });
 
   const pendingTasksCount = tasks.filter(
     (t) => t.status !== "Completed",
   ).length;
   const recentAlerts = notifications.slice(0, 3);
 
-  // Sales CRM State persistent simulator
-  const [leads, setLeads] = useState(() => {
-    const cached = localStorage.getItem("worksphere_sales_leads");
-    if (cached) return JSON.parse(cached);
-    return [
-      {
-        id: 101,
-        name: "Robert Chen",
-        company: "Apex Global Corp",
-        phone: "+1 (555) 892-3029",
-        email: "robert@apexglobal.com",
-        source: "LinkedIn Outbound",
-        status: "Qualified",
-        priority: "High",
-        next_followup: "May 23, 2026",
-        notes: "Interested in enterprise cloud suite licenses.",
-      },
-      {
-        id: 102,
-        name: "Amanda Ross",
-        company: "Zenith Tech",
-        phone: "+1 (555) 490-2182",
-        email: "amanda@zenith.io",
-        source: "Cold Email",
-        status: "Contacted",
-        priority: "Medium",
-        next_followup: "May 24, 2026",
-        notes: "Sent brochure, waiting for a callback.",
-      },
-      {
-        id: 103,
-        name: "Vikram Singh",
-        company: "Indus Logistics",
-        phone: "+1 (555) 902-3920",
-        email: "vikram@indus.in",
-        source: "Referral",
-        status: "Negotiation",
-        priority: "High",
-        next_followup: "May 22, 2026",
-        notes: "Reviewing proposal pricing sheet. BDM handling close.",
-      },
-      {
-        id: 104,
-        name: "Claire Dubois",
-        company: "Elysian Creative",
-        phone: "+1 (555) 309-8402",
-        email: "claire@elysian.fr",
-        source: "Inbound Demo",
-        status: "Meeting Scheduled",
-        priority: "High",
-        next_followup: "May 25, 2026",
-        notes: "Scheduled demo for next Monday afternoon.",
-      },
-      {
-        id: 105,
-        name: "Thomas Vance",
-        company: "Nova Retail",
-        phone: "+1 (555) 829-1940",
-        email: "vance@novaretail.com",
-        source: "Website Signup",
-        status: "Lead",
-        priority: "Low",
-        next_followup: "May 29, 2026",
-        notes: "New signup, needs discovery call scheduled.",
-      },
-    ];
-  });
-
-  const [activities, setActivities] = useState(() => {
-    const cached = localStorage.getItem("worksphere_sales_activities");
-    if (cached) return JSON.parse(cached);
-    return [
-      {
-        id: 201,
-        leadName: "Robert Chen",
-        company: "Apex Global Corp",
-        type: "call",
-        description:
-          "Conducted introductory call. Prospect qualified for Enterprise Plan.",
-        duration: "12m 40s",
-        outcome: "Qualified & Progressed",
-        timestamp: "2 hours ago",
-        verified: true,
-      },
-      {
-        id: 202,
-        leadName: "Amanda Ross",
-        company: "Zenith Tech",
-        type: "email",
-        description:
-          "Dispatched custom pricing presentation and features sheet.",
-        duration: "N/A",
-        outcome: "Pending Response",
-        timestamp: "Yesterday",
-        verified: false,
-      },
-      {
-        id: 203,
-        leadName: "Vikram Singh",
-        company: "Indus Logistics",
-        type: "proposal",
-        description:
-          "Dispatched final negotiation quote with 10% discount margin.",
-        duration: "N/A",
-        outcome: "Negotiation Mode",
-        timestamp: "2 days ago",
-        verified: true,
-      },
-    ];
-  });
-
-  const [dwrLogs, setDwrLogs] = useState(() => {
-    const cached = localStorage.getItem("worksphere_sales_dwr");
-    return cached ? JSON.parse(cached) : [];
-  });
+  // Sales CRM State persistent database layer
+  const [leads, setLeads] = useState([]);
+  const [activities, setActivities] = useState([]);
+  const [dwrLogs, setDwrLogs] = useState([]);
+  const [loadingCRM, setLoadingCRM] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem("worksphere_sales_leads", JSON.stringify(leads));
-  }, [leads]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      "worksphere_sales_activities",
-      JSON.stringify(activities),
-    );
-  }, [activities]);
-
-  useEffect(() => {
-    localStorage.setItem("worksphere_sales_dwr", JSON.stringify(dwrLogs));
-  }, [dwrLogs]);
+    const loadCRMData = async () => {
+      if (activePortal === "sales") {
+        setLoadingCRM(true);
+        try {
+          const fetchedLeads = await salesService.fetchLeads();
+          const fetchedActivities = await salesService.fetchActivities();
+          const fetchedDwrs = await salesService.fetchDwrs();
+          setLeads(fetchedLeads);
+          setActivities(fetchedActivities);
+          setDwrLogs(fetchedDwrs);
+        } catch (err) {
+          console.error("Failed to load CRM data from MongoDB:", err);
+        } finally {
+          setLoadingCRM(false);
+        }
+      }
+    };
+    loadCRMData();
+  }, [activePortal]);
 
   // Lead modal and creations
   const [showLeadModal, setShowLeadModal] = useState(false);
@@ -282,50 +213,39 @@ export default function Dashboard({
     return () => clearInterval(interval);
   }, [callerActive, callStatus]);
 
-  const handleCreateLead = (e) => {
+  const handleCreateLead = async (e) => {
     e.preventDefault();
     if (!newLead.name || !newLead.company) {
       triggerToast("Lead name and company are required!", "error");
       return;
     }
-    const nextLead = {
-      id: Date.now(),
-      ...newLead,
-    };
-    setLeads([nextLead, ...leads]);
-    setShowLeadModal(false);
-    setNewLead({
-      name: "",
-      company: "",
-      phone: "",
-      email: "",
-      source: "LinkedIn Outbound",
-      status: "Lead",
-      priority: "Medium",
-      next_followup: "",
-      notes: "",
-    });
-    triggerToast(
-      "New prospect successfully registered in CRM pipeline!",
-      "success",
-    );
-
-    // Add activity logging
-    const nextAct = {
-      id: Date.now(),
-      leadName: nextLead.name,
-      company: nextLead.company,
-      type: "lead_add",
-      description: `Prospect profile initialized via CRM. Initial status: ${nextLead.status}`,
-      duration: "N/A",
-      outcome: "Lead Created",
-      timestamp: "Just now",
-      verified: true,
-    };
-    setActivities([nextAct, ...activities]);
+    try {
+      const created = await salesService.registerLead(newLead);
+      setLeads((prev) => [created, ...prev]);
+      const updatedActs = await salesService.fetchActivities();
+      setActivities(updatedActs);
+      setShowLeadModal(false);
+      setNewLead({
+        name: "",
+        company: "",
+        phone: "",
+        email: "",
+        source: "LinkedIn Outbound",
+        status: "Lead",
+        priority: "Medium",
+        next_followup: "",
+        notes: "",
+      });
+      triggerToast(
+        "New prospect successfully registered in CRM pipeline!",
+        "success",
+      );
+    } catch (err) {
+      triggerToast("Failed to register lead in database.", "error");
+    }
   };
 
-  const handleDwrSubmit = (e) => {
+  const handleDwrSubmit = async (e) => {
     e.preventDefault();
     if (!dwrInput.summary || !dwrInput.plan) {
       triggerToast(
@@ -334,20 +254,15 @@ export default function Dashboard({
       );
       return;
     }
-    const nextLog = {
-      id: Date.now(),
-      timestamp: new Date().toLocaleString([], {
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      ...dwrInput,
-    };
-    setDwrLogs([nextLog, ...dwrLogs]);
-    setDwrInput({ summary: "", plan: "", blockers: "None" });
-    setShowDwrModal(false);
-    triggerToast("Daily Work Report (DWR) successfully submitted!", "success");
+    try {
+      const created = await salesService.submitDwr(dwrInput);
+      setDwrLogs((prev) => [created, ...prev]);
+      setDwrInput({ summary: "", plan: "", blockers: "None" });
+      setShowDwrModal(false);
+      triggerToast("Daily Work Report (DWR) successfully submitted!", "success");
+    } catch (err) {
+      triggerToast("Failed to submit DWR report.", "error");
+    }
   };
 
   const startSimulatedCall = (lead) => {
@@ -367,30 +282,34 @@ export default function Dashboard({
     setCallStatus("saving");
   };
 
-  const saveSimulatedCall = () => {
+  const saveSimulatedCall = async () => {
     const mins = Math.floor(callTime / 60);
     const secs = callTime % 60;
     const timeStr = `${mins}m ${secs}s`;
 
-    const nextAct = {
-      id: Date.now(),
+    const actData = {
+      leadId: callingLead._id || callingLead.id,
       leadName: callingLead.name,
       company: callingLead.company,
       type: "call",
       description: `Simulated Twilio Voice connection logged. Notes: "${callNotes || "No extra notes"}"`,
       duration: timeStr,
       outcome: "Call Completed",
-      timestamp: "Just now",
-      verified: true, // anti-fake validation
+      verified: true,
     };
 
-    setActivities([nextAct, ...activities]);
-    setCallerActive(false);
-    setCallingLead(null);
-    triggerToast(
-      "VoIP call recording and analytics synchronized successfully!",
-      "success",
-    );
+    try {
+      const created = await salesService.logActivity(actData);
+      setActivities((prev) => [created, ...prev]);
+      setCallerActive(false);
+      setCallingLead(null);
+      triggerToast(
+        "VoIP call recording and analytics synchronized successfully!",
+        "success",
+      );
+    } catch (err) {
+      triggerToast("Failed to synchronize VoIP log.", "error");
+    }
   };
 
   const triggerGpsCheckin = (lead) => {
@@ -398,7 +317,7 @@ export default function Dashboard({
     setGpsStatus(null);
     triggerToast("Fetching precise GPS geofence parameters...");
 
-    setTimeout(() => {
+    setTimeout(async () => {
       setGpsLoading(false);
       setGpsStatus({
         leadName: lead.name,
@@ -412,48 +331,37 @@ export default function Dashboard({
       });
       triggerToast("GPS visit proof validated successfully!", "success");
 
-      // Add checked-in activity
-      const nextAct = {
-        id: Date.now(),
+      const actData = {
+        leadId: lead._id || lead.id,
         leadName: lead.name,
         company: lead.company,
         type: "meeting",
-        description:
-          "Verified Client check-in visit. Anti-fake GPS geofence tag verified.",
+        description: "Verified Client check-in visit. Anti-fake GPS geofence tag verified.",
         duration: "N/A",
         outcome: "Visit Proof Validated",
-        timestamp: "Just now",
         verified: true,
       };
-      setActivities([nextAct, ...activities]);
+
+      try {
+        const created = await salesService.logActivity(actData);
+        setActivities((prev) => [created, ...prev]);
+      } catch (err) {
+        console.error("Failed to log GPS check-in:", err);
+      }
     }, 2200);
   };
 
-  const advanceLeadStatus = (leadId, nextStatus) => {
-    setLeads((prev) =>
-      prev.map((l) => {
-        if (l.id === leadId) {
-          const updated = { ...l, status: nextStatus };
-
-          // Log movement activity
-          const auditLog = {
-            id: Date.now(),
-            leadName: l.name,
-            company: l.company,
-            type: "pipeline",
-            description: `Pipeline stage moved from ${l.status} to ${nextStatus}`,
-            duration: "N/A",
-            outcome: "Stage Transited",
-            timestamp: "Just now",
-            verified: true,
-          };
-          setActivities((prevAct) => [auditLog, ...prevAct]);
-          triggerToast(`Lead advanced to: ${nextStatus}`, "success");
-          return updated;
-        }
-        return l;
-      }),
-    );
+  const advanceLeadStatus = async (leadId, nextStatus) => {
+    try {
+      await salesService.advanceLead(leadId, nextStatus);
+      const updatedLeads = await salesService.fetchLeads();
+      const updatedActs = await salesService.fetchActivities();
+      setLeads(updatedLeads);
+      setActivities(updatedActs);
+      triggerToast(`Lead advanced to: ${nextStatus}`, "success");
+    } catch (err) {
+      triggerToast("Failed to update pipeline stage.", "error");
+    }
   };
 
   const holidays = [
@@ -469,7 +377,7 @@ export default function Dashboard({
         <div>
           <h2 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
             <LayoutDashboard className="w-5.5 h-5.5 text-indigo-500" />
-            WorkSphere Employee Hub
+            Fastigo X Employee Hub
           </h2>
           <p className="text-[11px] text-slate-400">
             Access corporate tools, clock tracking, and active CRM targets.
@@ -499,12 +407,65 @@ export default function Dashboard({
       {/* PORTAL VIEW 1: HR PORTAL */}
       {activePortal === "hr" && (
         <>
+          {/* Onboarding Checklist banner */}
+          {onboardingChecklist && onboardingChecklist.progress < 100 && (
+            <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 border border-indigo-150 dark:border-indigo-900/60 p-6 rounded-2xl shadow-sm space-y-4 mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                    🚀 Welcome aboard! Your Onboarding Checklist
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Complete the required corporate setups below. (Your HR partner will verify your submissions).
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-3 py-1 rounded-xl">
+                    Onboarding Progress: {onboardingChecklist.progress}%
+                  </span>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {onboardingChecklist.tasks.map((task, idx) => (
+                  <div key={task.taskKey || idx} className="p-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl flex items-center justify-between gap-3 shadow-xs">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <input 
+                        type="checkbox" 
+                        checked={task.completed} 
+                        onChange={async (e) => {
+                          try {
+                            const updated = await DatabaseService.toggleOnboardingTask(task.taskKey, e.target.checked);
+                            setOnboardingChecklist(updated);
+                            triggerToast("Onboarding task status updated!", "success");
+                          } catch (err) {
+                            triggerToast("Failed to toggle onboarding task.", "error");
+                          }
+                        }}
+                        className="w-4 h-4 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                      />
+                      <span className={`text-[11px] font-semibold truncate ${task.completed ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-350'}`}>
+                        {task.label}
+                      </span>
+                    </div>
+                    <span className={`px-2 py-0.5 text-[9px] font-bold rounded-full uppercase shrink-0 ${
+                      task.verifiedByHR 
+                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400' 
+                        : 'bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400'
+                    }`}>
+                      {task.verifiedByHR ? 'Verified' : 'Pending Verification'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Top Banner Greetings */}
           <div className="relative p-6 bg-gradient-to-r from-indigo-900 to-indigo-700 text-white rounded-2xl shadow-xl overflow-hidden">
             <div className="absolute top-0 right-0 transform translate-x-12 -translate-y-12 w-64 h-64 bg-white/5 rounded-full blur-2xl"></div>
             <div className="relative z-10 max-w-2xl">
               <h2 className="text-xl font-extrabold mb-1">
-                Welcome Back to WorkSphere!
+                Welcome Back to Fastigo X!
               </h2>
               <p className="text-indigo-200 text-xs mb-4">
                 You have {pendingTasksCount} pending tasks on your schedule for
@@ -716,32 +677,70 @@ export default function Dashboard({
                 </button>
               </div>
               <div className="space-y-4">
-                {recentAlerts.map((alert) => (
-                  <div
-                    key={alert.id}
-                    className="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-100 dark:border-slate-900 flex items-start gap-4"
-                  >
-                    <div className="p-2.5 bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 rounded-xl shrink-0">
-                      <AlertCircle className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
-                          {alert.title}
-                        </h4>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-300">
-                          {alert.category}
+                {liveAnnouncements.length > 0 ? (
+                  liveAnnouncements.slice(0, 3).map((ann) => (
+                    <div
+                      key={ann._id}
+                      className="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-100 dark:border-slate-900 flex items-start gap-4 animate-fade-in"
+                    >
+                      <div className="p-2.5 bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 rounded-xl shrink-0">
+                        <AlertCircle className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <h4 className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                            {ann.title}
+                          </h4>
+                          <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                            ann.category === 'Alert' 
+                              ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-350' 
+                              : ann.category === 'Policy'
+                              ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
+                              : 'bg-indigo-50 text-indigo-650 dark:bg-indigo-950/40 dark:text-indigo-300'
+                          }`}>
+                            {ann.category}
+                          </span>
+                          {ann.pinned && (
+                            <span className="text-[8px] bg-indigo-600 text-white px-1.5 py-0.5 rounded font-extrabold tracking-wider uppercase">PINNED</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-1.5">
+                          {ann.content}
+                        </p>
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold block">
+                          Broadcast by {ann.createdBy || 'HR'} • {new Date(ann.createdAt).toLocaleDateString("en-US", { month: 'short', day: 'numeric' })}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-1">
-                        {alert.message}
-                      </p>
-                      <span className="text-[10px] text-slate-400 dark:text-slate-500">
-                        {alert.time}
-                      </span>
                     </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  recentAlerts.map((alert) => (
+                    <div
+                      key={alert.id}
+                      className="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-100 dark:border-slate-900 flex items-start gap-4"
+                    >
+                      <div className="p-2.5 bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 rounded-xl shrink-0">
+                        <AlertCircle className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
+                            {alert.title}
+                          </h4>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-indigo-50 text-indigo-650 dark:bg-indigo-950/40 dark:text-indigo-300">
+                            {alert.category}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-1">
+                          {alert.message}
+                        </p>
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                          {alert.time}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 
@@ -757,7 +756,7 @@ export default function Dashboard({
                   </p>
                 </div>
                 <div className="space-y-3">
-                  {holidays.map((h, i) => (
+                  {(liveHolidays.length > 0 ? liveHolidays : holidays).map((h, i) => (
                     <div
                       key={i}
                       className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-100 dark:border-slate-900"
@@ -767,7 +766,7 @@ export default function Dashboard({
                           {h.name}
                         </h4>
                         <span className="text-[10px] text-slate-400">
-                          {h.day}
+                          {h.day} {h.isOptional ? "(Optional)" : ""}
                         </span>
                       </div>
                       <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-1 rounded-lg">
@@ -953,7 +952,7 @@ export default function Dashboard({
                     .filter((l) => l.status === "Lead")
                     .map((lead) => (
                       <div
-                        key={lead.id}
+                        key={lead._id || lead.id}
                         className="p-3 bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-xl shadow-xs space-y-2 hover:shadow transition"
                       >
                         <div className="flex justify-between items-center">
@@ -983,7 +982,7 @@ export default function Dashboard({
                           </button>
                           <button
                             onClick={() =>
-                              advanceLeadStatus(lead.id, "Contacted")
+                              advanceLeadStatus(lead._id || lead.id, "Contacted")
                             }
                             className="text-[9px] font-bold text-indigo-500 hover:text-indigo-700 flex items-center gap-0.5"
                           >
@@ -1004,14 +1003,12 @@ export default function Dashboard({
                   <span className="text-[9px] font-bold bg-slate-200 dark:bg-slate-900 text-slate-600 px-2 py-0.5 rounded">
                     {leads.filter((l) => l.status === "Contacted").length}
                   </span>
-                </div>
-
-                <div className="space-y-3 flex-1 overflow-y-auto">
+                </div>                <div className="space-y-3 flex-1 overflow-y-auto">
                   {leads
                     .filter((l) => l.status === "Contacted")
                     .map((lead) => (
                       <div
-                        key={lead.id}
+                        key={lead._id || lead.id}
                         className="p-3 bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-xl shadow-xs space-y-2 hover:shadow transition"
                       >
                         <div className="flex justify-between items-center">
@@ -1035,7 +1032,7 @@ export default function Dashboard({
                           <div className="flex items-center gap-1.5">
                             <button
                               onClick={() => startSimulatedCall(lead)}
-                              className="p-1.5 bg-indigo-50 text-indigo-600 dark:bg-indigo-950/30 rounded hover:bg-indigo-100 transition"
+                              className="p-1.5 bg-indigo-50 text-indigo-650 dark:bg-indigo-950/30 rounded hover:bg-indigo-100 transition"
                               title="Call Prospect"
                             >
                               <Phone className="w-3.5 h-3.5" />
@@ -1050,7 +1047,7 @@ export default function Dashboard({
                           </div>
                           <button
                             onClick={() =>
-                              advanceLeadStatus(lead.id, "Qualified")
+                              advanceLeadStatus(lead._id || lead.id, "Qualified")
                             }
                             className="text-[9px] font-bold text-indigo-500 hover:text-indigo-700 flex items-center gap-0.5"
                           >
@@ -1088,7 +1085,7 @@ export default function Dashboard({
                     )
                     .map((lead) => (
                       <div
-                        key={lead.id}
+                        key={lead._id || lead.id}
                         className="p-3 bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-xl shadow-xs space-y-2 hover:shadow transition"
                       >
                         <div className="flex justify-between items-center">
@@ -1124,7 +1121,7 @@ export default function Dashboard({
                           </button>
                           <button
                             onClick={() =>
-                              advanceLeadStatus(lead.id, "Negotiation")
+                              advanceLeadStatus(lead._id || lead.id, "Negotiation")
                             }
                             className="text-[9px] font-bold text-indigo-500 hover:text-indigo-700 flex items-center gap-0.5"
                           >
@@ -1158,7 +1155,7 @@ export default function Dashboard({
                     )
                     .map((lead) => (
                       <div
-                        key={lead.id}
+                        key={lead._id || lead.id}
                         className={`p-3 border rounded-xl shadow-xs space-y-2 hover:shadow transition ${lead.status === "Won" ? "bg-emerald-50/30 border-emerald-100 dark:bg-emerald-950/10 dark:border-emerald-900/40" : "bg-white dark:bg-slate-950 border-slate-100 dark:border-slate-850"}`}
                       >
                         <div className="flex justify-between items-center">
@@ -1184,7 +1181,7 @@ export default function Dashboard({
                           </span>
                           {lead.status !== "Won" && (
                             <button
-                              onClick={() => advanceLeadStatus(lead.id, "Won")}
+                              onClick={() => advanceLeadStatus(lead._id || lead.id, "Won")}
                               className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[9px] font-bold shadow-xs cursor-pointer"
                             >
                               Mark Won
@@ -1343,7 +1340,7 @@ export default function Dashboard({
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
                   <span className="text-[9px] font-extrabold text-indigo-400 uppercase tracking-widest">
-                    WorkSphere VoIP Call
+                    Fastigo X VoIP Call
                   </span>
                 </div>
                 {callStatus !== "saving" && (

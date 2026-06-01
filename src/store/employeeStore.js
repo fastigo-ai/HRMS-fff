@@ -6,6 +6,7 @@ import { setProfile } from './authStore';
 
 const initialState = {
   tasks: [],
+  payslips: [],
   leaveBalances: {
     casualLeave: 12,
     sickLeave: 8,
@@ -24,6 +25,9 @@ const employeeSlice = createSlice({
   reducers: {
     setTasks: (state, action) => {
       state.tasks = action.payload;
+    },
+    setPayslips: (state, action) => {
+      state.payslips = action.payload;
     },
     setDownloadingDocument: (state, action) => {
       state.downloadingDocument = action.payload;
@@ -45,7 +49,7 @@ const employeeSlice = createSlice({
   }
 });
 
-export const { setTasks, setDownloadingDocument, applyLeaveRequest, setLeaveHistory } = employeeSlice.actions;
+export const { setTasks, setPayslips, setDownloadingDocument, applyLeaveRequest, setLeaveHistory } = employeeSlice.actions;
 
 export const useEmployeeStore = (selectorFn) => {
   const dispatch = useDispatch();
@@ -62,6 +66,10 @@ export const useEmployeeStore = (selectorFn) => {
           const taskList = await DatabaseService.getTasks();
           dispatch(setTasks(taskList));
 
+          // Fetch personal payslips
+          const slipList = await DatabaseService.getPayslips();
+          dispatch(setPayslips(slipList));
+
           // Fetch leaves from database
           const res = await authenticatedFetch("http://localhost:8000/api/leaves/my");
           const data = await res.json();
@@ -74,7 +82,7 @@ export const useEmployeeStore = (selectorFn) => {
           const dataProfile = await resProfile.json();
           if (resProfile.ok) {
             dispatch(setProfile(dataProfile.data.user));
-            localStorage.setItem('worksphere_profile', JSON.stringify(dataProfile.data.user));
+            localStorage.setItem('Fastigo X_profile', JSON.stringify(dataProfile.data.user));
           }
         } catch (err) {
           console.error('Failed to sync employee tasks & leaves & profile:', err);
@@ -133,7 +141,7 @@ export const useEmployeeStore = (selectorFn) => {
           } else {
             const currentTasks = await DatabaseService.getTasks();
             const updatedDb = currentTasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t);
-            localStorage.setItem('worksphere_tasks', JSON.stringify(updatedDb));
+            localStorage.setItem('Fastigo X_tasks', JSON.stringify(updatedDb));
           }
           
           const taskList = await DatabaseService.getTasks();

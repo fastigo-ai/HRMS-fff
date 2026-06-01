@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import EmployeeSettings from '../../../pages/employees/Settings';
 import { useUiStore } from '../../../store/uiStore';
+import { employeeService } from '../../../services/employeeService';
 
 export default function SettingsPage() {
   const { theme, toggleTheme, triggerToast } = useUiStore();
@@ -18,6 +19,25 @@ export default function SettingsPage() {
     new: '',
     confirm: '',
   });
+
+  const [resignation, setResignation] = useState(null);
+  const [resignationLoading, setResignationLoading] = useState(true);
+
+  useEffect(() => {
+    fetchResignation();
+  }, []);
+
+  const fetchResignation = async () => {
+    setResignationLoading(true);
+    try {
+      const data = await employeeService.getResignation();
+      setResignation(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setResignationLoading(false);
+    }
+  };
 
   const handleToggleMfa = () => {
     setMfaEnabled(!mfaEnabled);
@@ -46,6 +66,16 @@ export default function SettingsPage() {
     setPasswordForm({ current: '', new: '', confirm: '' });
   };
 
+  const handleSubmitResignation = async (lastWorkingDay, reason) => {
+    try {
+      const data = await employeeService.submitResignation({ lastWorkingDay, reason });
+      setResignation(data);
+      triggerToast('Resignation successfully submitted for review!');
+    } catch (err) {
+      triggerToast(err.message || 'Failed to submit resignation request', 'error');
+    }
+  };
+
   return (
     <EmployeeSettings 
       theme={theme}
@@ -58,6 +88,9 @@ export default function SettingsPage() {
       setPasswordForm={setPasswordForm}
       handlePasswordChange={handlePasswordChange}
       triggerToast={triggerToast}
+      resignation={resignation}
+      resignationLoading={resignationLoading}
+      onSubmitResignation={handleSubmitResignation}
     />
   );
 }

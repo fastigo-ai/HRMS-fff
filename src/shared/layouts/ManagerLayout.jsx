@@ -7,8 +7,8 @@ import { useUiStore } from '../../store/uiStore';
 import { useManagerStore } from '../../store/managerStore';
 
 export default function ManagerLayout() {
-  const { currentTab, setCurrentTab } = useAuthStore();
-  const { sidebarOpen, setSidebarOpen, theme, toggleTheme, notifications } = useUiStore();
+  const { currentTab, setCurrentTab, clockedIn, updateElapsedTime, checkTodayClockStatus } = useAuthStore();
+  const { sidebarOpen, setSidebarOpen, theme, toggleTheme, notifications, fetchNotifications } = useUiStore();
   const { fetchPMData } = useManagerStore();
   const navigate = useNavigate();
   const location = useLocation();
@@ -21,10 +21,23 @@ export default function ManagerLayout() {
     }
   }, [location.pathname]);
 
-  // Sync dataset once
+  // Sync dataset, clock state, and notifications
   useEffect(() => {
     fetchPMData();
+    checkTodayClockStatus();
+    fetchNotifications();
   }, []);
+
+  // Clock elapsed timer sync
+  useEffect(() => {
+    let intervalId;
+    if (clockedIn) {
+      intervalId = setInterval(() => {
+        updateElapsedTime();
+      }, 1000);
+    }
+    return () => clearInterval(intervalId);
+  }, [clockedIn]);
 
   const handleTabChange = (tabId) => {
     setCurrentTab(tabId);
