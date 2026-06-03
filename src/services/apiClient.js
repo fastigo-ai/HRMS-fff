@@ -43,6 +43,8 @@ export const authenticatedFetch = async (url, options = {}) => {
         localStorage.setItem("Fastigo X_profile", JSON.stringify(user));
 
         console.log("Session successfully renewed! Retrying original request...");
+        // Update authorization header with the new token
+        options.headers["Authorization"] = `Bearer ${token}`;
         // Retry the original query
         res = await fetch(url, options);
       } else {
