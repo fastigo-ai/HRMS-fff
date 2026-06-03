@@ -18,6 +18,12 @@ export const authenticatedFetch = async (url, options = {}) => {
 
   let res = await fetch(url, options);
 
+  // Sync token if backend middleware silently refreshed it under the hood
+  const newAccessToken = res.headers.get("x-new-access-token");
+  if (newAccessToken) {
+    localStorage.setItem("Fastigo X_token", newAccessToken);
+  }
+
   // Catch 401 Unauthorized (Access Token expired) and perform automatic refresh under the hood
   if (res.status === 401 && !url.includes("/api/auth/refresh")) {
     console.log("Access token expired (401). Triggering silent session refresh...");
