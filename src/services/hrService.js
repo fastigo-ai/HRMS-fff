@@ -139,6 +139,23 @@ export const hrService = {
     }
   },
 
+  updateDepartment: async (id, dept) => {
+    try {
+      const res = await authenticatedFetch(`${API_BASE_URL}/departments/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(dept)
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to update department");
+      }
+      return await hrService.getHRDepartments();
+    } catch (err) {
+      console.error("Failed to update department on backend:", err);
+      throw err;
+    }
+  },
+
   getHRAttendanceLogs: async () => {
     const logs = await hrService.getHRAttendanceLogsAll();
     const employees = await hrService.getHREmployees();
@@ -317,28 +334,88 @@ export const hrService = {
   },
 
   getHRRecruitment: async () => {
-    await delay();
-    return {
-      candidates: getCached('hr_candidates', initialCandidates),
-      sourcingChannels: initialSourcingChannels,
-      interviews: initialInterviews
-    };
+    try {
+      const resCandidates = await authenticatedFetch(`${API_BASE_URL}/candidates`);
+      const dataCandidates = await resCandidates.json();
+      
+      const resMetrics = await authenticatedFetch(`${API_BASE_URL}/candidates/metrics`);
+      const dataMetrics = await resMetrics.json();
+
+      return {
+        candidates: dataCandidates.data?.candidates || [],
+        metrics: dataMetrics.data || {
+          totalCandidates: 0,
+          activeCandidates: 0,
+          avgTimeToHire: 18,
+          sourcingChannels: []
+        },
+        interviews: initialInterviews
+      };
+    } catch (err) {
+      console.error("Failed to fetch recruitment pipeline:", err);
+      return {
+        candidates: [],
+        metrics: {
+          totalCandidates: 0,
+          activeCandidates: 0,
+          avgTimeToHire: 18,
+          sourcingChannels: []
+        },
+        interviews: initialInterviews
+      };
+    }
   },
 
   updateCandidateStage: async (id, nextStage) => {
-    await delay(150);
-    const current = getCached('hr_candidates', initialCandidates);
-    const updated = current.map(c => c.id === id ? { ...c, stage: nextStage } : c);
-    setCached('hr_candidates', updated);
-    return updated;
+    try {
+      const res = await authenticatedFetch(`${API_BASE_URL}/candidates/${id}/stage`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stage: nextStage }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to update candidate stage");
+      }
+      return data.data.candidate;
+    } catch (err) {
+      console.error("Failed to update candidate stage:", err);
+      throw err;
+    }
   },
 
   addCandidate: async (candidate) => {
-    await delay(250);
-    const current = getCached('hr_candidates', initialCandidates);
-    const updated = [...current, { ...candidate, id: Date.now() }];
-    setCached('hr_candidates', updated);
-    return updated;
+    try {
+      const res = await authenticatedFetch(`${API_BASE_URL}/candidates`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(candidate),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to create candidate");
+      }
+      return data.data.candidate;
+    } catch (err) {
+      console.error("Failed to add candidate:", err);
+      throw err;
+    }
+  },
+
+  deleteCandidate: async (id) => {
+    try {
+      const res = await authenticatedFetch(`${API_BASE_URL}/candidates/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Failed to delete candidate");
+      }
+      return true;
+    } catch (err) {
+      console.error("Failed to delete candidate:", err);
+      throw err;
+    }
   },
 
   addEmployee: async (employee) => {

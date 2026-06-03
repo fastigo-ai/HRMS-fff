@@ -3,7 +3,7 @@ import {
   Plus, Filter, User, Briefcase, CreditCard, FileText, UploadCloud, X, CheckCircle2, 
   Calendar, MapPin, Phone, Mail, Building, Download, Send, Megaphone, Printer, 
   ClipboardCheck, ArrowRight, Trash2, ShieldCheck, UserCheck, TrendingUp, Tag,
-  Copy, Sparkles, RefreshCw
+  Copy, Sparkles, RefreshCw, Camera
 } from 'lucide-react';
 import { useHrStore } from '../../store/hrStore';
 import { useUiStore } from '../../store/uiStore';
@@ -263,6 +263,7 @@ export default function EmployeesPage() {
     aadhaarNumber: '',
     aadhaarCardDoc: null,
     panCardDoc: null,
+    avatar: null,
   });
 
   const filtered = hrEmployees.filter(emp => {
@@ -377,7 +378,7 @@ export default function EmployeesPage() {
                 address: row.address || '',
                 skills: Array.isArray(row.skills) ? row.skills.join(', ') : (row.skills || ''),
                 empId: row.empId || '',
-                gender: row.avatar?.includes('photo-1534528741775-53994a69daeb') ? 'female' : 'male',
+                gender: row.gender || 'male',
                 prevCompany: row.prevCompany || '',
                 prevDesignation: row.prevDesignation || '',
                 prevDuration: row.prevDuration || '',
@@ -392,6 +393,7 @@ export default function EmployeesPage() {
                 aadhaarNumber: row.aadhaarNumber || '',
                 aadhaarCardDoc: row.aadhaarCardDoc || null,
                 panCardDoc: row.panCardDoc || null,
+                avatar: row.avatar || null,
               });
               setIsEditMode(true);
               setIsModalOpen(true);
@@ -463,9 +465,7 @@ export default function EmployeesPage() {
       ...newEmp,
       empId: finalEmpId,
       skills: newEmp.skills ? (Array.isArray(newEmp.skills) ? newEmp.skills : newEmp.skills.split(',').map(s => s.trim())) : ['HRMS Portal'],
-      avatar: newEmp.gender === 'female' 
-        ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=64&h=64'
-        : 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=64&h=64',
+      avatar: newEmp.avatar || null,
     };
 
     if (isEditMode && selectedEmp) {
@@ -483,7 +483,8 @@ export default function EmployeesPage() {
       prevCompany: '', prevDesignation: '', prevDuration: '', prevCtc: '',
       prevRelievingDoc: null, prevSalarySlip: null,
       bankName: '', accountNo: '', panNumber: '', ifscCode: '', joiningSalary: '',
-      aadhaarNumber: '', aadhaarCardDoc: null, panCardDoc: null
+      aadhaarNumber: '', aadhaarCardDoc: null, panCardDoc: null,
+      avatar: null
     });
     setActiveFormTab('basic');
     setIsEditMode(false);
@@ -596,7 +597,8 @@ export default function EmployeesPage() {
                     prevCompany: '', prevDesignation: '', prevDuration: '', prevCtc: '',
                     prevRelievingDoc: null, prevSalarySlip: null,
                     bankName: '', accountNo: '', panNumber: '', ifscCode: '', joiningSalary: '',
-                    aadhaarNumber: '', aadhaarCardDoc: null, panCardDoc: null
+                    aadhaarNumber: '', aadhaarCardDoc: null, panCardDoc: null,
+                    avatar: null
                   });
                   setIsModalOpen(true);
                 }}
@@ -1359,7 +1361,7 @@ export default function EmployeesPage() {
                       address: selectedEmp.address || '',
                       skills: Array.isArray(selectedEmp.skills) ? selectedEmp.skills.join(', ') : (selectedEmp.skills || ''),
                       empId: selectedEmp.empId || '',
-                      gender: selectedEmp.avatar?.includes('photo-1534528741775-53994a69daeb') ? 'female' : 'male',
+                      gender: selectedEmp.gender || 'male',
                       prevCompany: selectedEmp.prevCompany || '',
                       prevDesignation: selectedEmp.prevDesignation || '',
                       prevDuration: selectedEmp.prevDuration || '',
@@ -1374,6 +1376,7 @@ export default function EmployeesPage() {
                       aadhaarNumber: selectedEmp.aadhaarNumber || '',
                       aadhaarCardDoc: selectedEmp.aadhaarCardDoc || null,
                       panCardDoc: selectedEmp.panCardDoc || null,
+                      avatar: selectedEmp.avatar || null,
                     });
                     setIsEditMode(true);
                     setIsModalOpen(true);
@@ -1503,7 +1506,7 @@ export default function EmployeesPage() {
               <button
                 type="submit"
                 disabled={applyingCareer}
-                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-755 disabled:opacity-50 text-white rounded-xl font-bold shadow-md shadow-indigo-650/15"
+                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-bold shadow-md shadow-indigo-600/15"
               >
                 {applyingCareer ? 'Processing Action...' : 'Apply Progression Plan'}
               </button>
@@ -1614,6 +1617,71 @@ export default function EmployeesPage() {
           {/* TAB 1: BASIC INFORMATION */}
           {activeFormTab === 'basic' && (
             <div className="space-y-3">
+              {/* Employee Photo Upload */}
+              <div className="flex items-center gap-4 p-3 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-150 dark:border-slate-800/80 rounded-2xl mb-4">
+                <div className="relative group shrink-0">
+                  <img 
+                    src={
+                      newEmp.avatar
+                        ? (newEmp.avatar instanceof File ? URL.createObjectURL(newEmp.avatar) : newEmp.avatar)
+                        : (newEmp.gender === 'female' 
+                            ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=64&h=64'
+                            : 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=64&h=64')
+                    } 
+                    alt="Avatar Preview" 
+                    className="w-16 h-16 rounded-full object-cover ring-2 ring-violet-500/25"
+                  />
+                  <label className="absolute inset-0 flex items-center justify-center bg-black/40 hover:bg-black/50 text-white rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <Camera className="w-5 h-5" />
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          setNewEmp(prev => ({ ...prev, avatar: file }));
+                          triggerToast(`Photo "${file.name}" selected!`);
+                        }
+                      }} 
+                      className="hidden" 
+                    />
+                  </label>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Employee Photo</span>
+                  <span className="text-[10px] text-slate-450 dark:text-slate-400">Upload a professional headshot (JPG, PNG, or WebP)</span>
+                  <div className="flex gap-2 mt-1">
+                    <label className="px-2.5 py-1 bg-violet-50 dark:bg-violet-950/30 text-violet-650 dark:text-violet-400 border border-violet-100 dark:border-violet-900/50 hover:bg-violet-100 dark:hover:bg-violet-950/50 text-[10px] font-bold rounded-lg cursor-pointer transition">
+                      Choose Photo
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            setNewEmp(prev => ({ ...prev, avatar: file }));
+                            triggerToast(`Photo "${file.name}" selected!`);
+                          }
+                        }} 
+                        className="hidden" 
+                      />
+                    </label>
+                    {newEmp.avatar && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewEmp(prev => ({ ...prev, avatar: null }));
+                          triggerToast('Photo selection cleared.');
+                        }}
+                        className="px-2.5 py-1 bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-450 border border-rose-100 dark:border-rose-900/30 hover:bg-rose-100 dark:hover:bg-rose-950/40 text-[10px] font-bold rounded-lg transition"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block mb-1 text-slate-500">Full Name *</label>
@@ -2109,7 +2177,7 @@ export default function EmployeesPage() {
                     }
                     setActiveFormTab('previous');
                   }}
-                  className="px-4 py-2 bg-violet-650 text-white rounded-xl font-bold shadow-md shadow-violet-555/10"
+                  className="px-4 py-2 bg-violet-600 hover:bg-violet-750 text-white rounded-xl font-bold shadow-md shadow-violet-600/10 transition"
                 >
                   Next: Career →
                 </button>
@@ -2119,7 +2187,7 @@ export default function EmployeesPage() {
                 <button 
                   type="button" 
                   onClick={() => setActiveFormTab('payroll')}
-                  className="px-4 py-2 bg-violet-650 text-white rounded-xl font-bold shadow-md shadow-violet-555/10"
+                  className="px-4 py-2 bg-violet-600 hover:bg-violet-750 text-white rounded-xl font-bold shadow-md shadow-violet-600/10 transition"
                 >
                   Next: Payroll →
                 </button>

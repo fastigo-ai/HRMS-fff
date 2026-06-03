@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import { DatabaseService } from '../../services/api';
 import { hrService } from '../../services/hrService';
+import { useEmployeeStore } from '../../store/employeeStore';
+import EmployeeLeaves from '../employees/Leaves';
 
 export default function HRLeaves({
   triggerToast
@@ -31,6 +33,13 @@ export default function HRLeaves({
   const [searchQuery, setSearchQuery] = useState('');
 
   const [activeTab, setActiveTab] = useState('requests');
+  const { leaveBalances, leaveHistory, applyLeave, fetchEmployeeData } = useEmployeeStore();
+
+  useEffect(() => {
+    if (activeTab === 'apply-leave') {
+      fetchEmployeeData();
+    }
+  }, [activeTab]);
   const [holidays, setHolidays] = useState([]);
   const [holidaysLoading, setHolidaysLoading] = useState(true);
   const [newHoliday, setNewHoliday] = useState({
@@ -214,9 +223,30 @@ export default function HRLeaves({
             <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-full" />
           )}
         </button>
+        <button
+          onClick={() => setActiveTab('apply-leave')}
+          className={`pb-3 text-xs font-bold transition-all relative flex items-center gap-1.5 ${
+            activeTab === 'apply-leave' 
+              ? 'text-indigo-600 dark:text-indigo-400 font-extrabold' 
+              : 'text-slate-400 dark:text-slate-500 hover:text-slate-600'
+          }`}
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Apply Leave (Personal)
+          {activeTab === 'apply-leave' && (
+            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-full" />
+          )}
+        </button>
       </div>
 
-      {activeTab === 'requests' ? (
+      {activeTab === 'apply-leave' ? (
+        <EmployeeLeaves 
+          leaveBalances={leaveBalances}
+          leaveHistory={leaveHistory}
+          applyLeave={(req) => applyLeave(req, triggerToast)}
+          triggerToast={triggerToast}
+        />
+      ) : activeTab === 'requests' ? (
         <>
           {/* Top Stats Cards Row */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -371,7 +401,7 @@ export default function HRLeaves({
                   <span className="py-1">1</span>
                   <span className="py-1">2</span>
                   {/* Oct 3: Pending request */}
-                  <span className="py-1 bg-indigo-50/60 text-indigo-755 border border-indigo-200/50 rounded-lg dark:bg-indigo-950/20">3</span>
+                  <span className="py-1 bg-indigo-50/60 text-indigo-650 border border-indigo-200/50 rounded-lg dark:bg-indigo-950/20">3</span>
                   <span className="py-1">4</span>
                   <span className="py-1">5</span>
                   <span className="py-1">6</span>
@@ -382,10 +412,10 @@ export default function HRLeaves({
                   <span className="py-1">10</span>
                   <span className="py-1">11</span>
                   {/* Oct 12, 13, 14, 15: Out */}
-                  <span className="py-1 bg-orange-50/80 text-orange-755 border border-orange-200/40 rounded-lg dark:bg-orange-950/20">12</span>
-                  <span className="py-1 bg-orange-50/80 text-orange-755 border border-orange-200/40 rounded-lg dark:bg-orange-950/20">13</span>
-                  <span className="py-1 bg-orange-50/80 text-orange-755 border border-orange-200/40 rounded-lg dark:bg-orange-950/20">14</span>
-                  <span className="py-1 bg-orange-50/80 text-orange-755 border border-orange-200/40 rounded-lg dark:bg-orange-950/20">15</span>
+                  <span className="py-1 bg-orange-50/80 text-orange-600 border border-orange-200/40 rounded-lg dark:bg-orange-950/20">12</span>
+                  <span className="py-1 bg-orange-50/80 text-orange-600 border border-orange-200/40 rounded-lg dark:bg-orange-950/20">13</span>
+                  <span className="py-1 bg-orange-50/80 text-orange-600 border border-orange-200/40 rounded-lg dark:bg-orange-950/20">14</span>
+                  <span className="py-1 bg-orange-50/80 text-orange-600 border border-orange-200/40 rounded-lg dark:bg-orange-950/20">15</span>
                   <span className="py-1">16</span>
                   <span className="py-1">17</span>
                   <span className="py-1">18</span>
@@ -448,7 +478,7 @@ export default function HRLeaves({
                 {/* Dynamic floating add policy button */}
                 <button 
                   onClick={handleAddNewPolicy}
-                  className="absolute -bottom-3 -right-3 w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-755 text-white flex items-center justify-center shadow-lg shadow-indigo-600/20 hover:scale-105 transition"
+                  className="absolute -bottom-3 -right-3 w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center shadow-lg shadow-indigo-600/20 hover:scale-105 transition"
                   title="Add New Policy"
                 >
                   <Plus className="w-5 h-5" />

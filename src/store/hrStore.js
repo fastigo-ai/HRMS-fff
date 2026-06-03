@@ -63,11 +63,11 @@ export const useHrStore = (selectorFn) => {
         dept: emp.department,
         status: "Active",
         location: emp.address ? "HQ Austin" : "Remote",
-        avatar: emp.role === 'hr_admin'
+        avatar: emp.avatar || (emp.role === 'hr_admin'
           ? 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=64&h=64'
           : (emp.role === 'manager'
             ? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=64&h=64'
-            : 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=64&h=64'),
+            : 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=64&h=64')),
         phone: emp.phone,
         address: emp.address,
         skills: emp.skills,
@@ -136,7 +136,8 @@ export const useHrStore = (selectorFn) => {
             joiningSalary: employee.joiningSalary || "N/A",
             aadhaarNumber: employee.aadhaarNumber || '',
             aadhaarCardDoc: employee.aadhaarCardDoc || null,
-            panCardDoc: employee.panCardDoc || null
+            panCardDoc: employee.panCardDoc || null,
+            avatar: employee.avatar || null
           };
  
           const result = await DatabaseService.addEmployee(normalizedEmployee);
@@ -151,9 +152,9 @@ export const useHrStore = (selectorFn) => {
             dept: dbEmp.department,
             status: "Active",
             location: dbEmp.location || (dbEmp.address ? "HQ Austin" : "Remote"),
-            avatar: employee.gender === 'female'
+            avatar: dbEmp.avatar || (employee.gender === 'female'
               ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=64&h=64'
-              : 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=64&h=64',
+              : 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=64&h=64'),
             phone: dbEmp.phone,
             address: dbEmp.address,
             skills: dbEmp.skills,
@@ -209,7 +210,8 @@ export const useHrStore = (selectorFn) => {
             joiningSalary: employee.joiningSalary || "N/A",
             aadhaarNumber: employee.aadhaarNumber || '',
             aadhaarCardDoc: employee.aadhaarCardDoc || null,
-            panCardDoc: employee.panCardDoc || null
+            panCardDoc: employee.panCardDoc || null,
+            avatar: employee.avatar || null
           };
  
           const result = await DatabaseService.updateEmployee(id, normalizedEmployee);
@@ -223,9 +225,9 @@ export const useHrStore = (selectorFn) => {
             dept: dbEmp.department,
             status: "Active",
             location: dbEmp.location || (dbEmp.address ? "HQ Austin" : "Remote"),
-            avatar: employee.gender === 'female'
+            avatar: dbEmp.avatar || (employee.gender === 'female'
               ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=64&h=64'
-              : 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=64&h=64',
+              : 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=64&h=64'),
             phone: dbEmp.phone,
             address: dbEmp.address,
             skills: dbEmp.skills,

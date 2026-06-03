@@ -102,28 +102,28 @@ export default function SalesAudit() {
       {/* Roster Overview Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="glass-panel p-5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-950 flex items-center gap-4 shadow-sm">
-          <div className="p-3.5 bg-indigo-50 text-indigo-650 dark:bg-indigo-950/40 rounded-xl">
+          <div className="p-3.5 bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 rounded-xl">
             <Users className="w-5 h-5" />
           </div>
           <div>
             <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block">
               Active CRM Reps
             </span>
-            <span className="text-lg font-extrabold text-slate-850 dark:text-white block">
+            <span className="text-lg font-extrabold text-slate-800 dark:text-white block">
               {totalReps} Sales Staff
             </span>
           </div>
         </div>
 
         <div className="glass-panel p-5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-950 flex items-center gap-4 shadow-sm">
-          <div className="p-3.5 bg-sky-50 text-sky-655 dark:bg-sky-950/40 rounded-xl">
+          <div className="p-3.5 bg-sky-50 text-sky-600 dark:bg-sky-950/40 rounded-xl">
             <Sliders className="w-5 h-5" />
           </div>
           <div>
             <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block">
               Pipeline Opportunities
             </span>
-            <span className="text-lg font-extrabold text-slate-850 dark:text-white block">
+            <span className="text-lg font-extrabold text-slate-800 dark:text-white block">
               {activeLeadsCount} Registered
             </span>
           </div>
@@ -137,7 +137,7 @@ export default function SalesAudit() {
             <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block">
               VoIP Trunk Calls
             </span>
-            <span className="text-lg font-extrabold text-slate-850 dark:text-white block flex items-center gap-1">
+            <span className="text-lg font-extrabold text-slate-800 dark:text-white block flex items-center gap-1">
               {totalCallsSeeded} Connected
               <ShieldCheck className="w-4 h-4 text-emerald-500" />
             </span>
@@ -152,7 +152,7 @@ export default function SalesAudit() {
             <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block">
               GPS Geofence Visits
             </span>
-            <span className="text-lg font-extrabold text-slate-850 dark:text-white block">
+            <span className="text-lg font-extrabold text-slate-800 dark:text-white block">
               {totalMeetingsChecked} Verified
             </span>
           </div>
@@ -166,98 +166,105 @@ export default function SalesAudit() {
           <p className="text-xs text-slate-400">Review sales rep capacities, aggregate deal counts, and swap BDA / BDM positions.</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {performance.map(({ user, stats }) => {
-            const isBDM = user.position?.toLowerCase().includes("manager") || user.position?.toLowerCase().includes("bdm");
-            return (
-              <div
-                key={user._id || user.id}
-                className="glass-panel p-6 bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm space-y-6 relative overflow-hidden"
-              >
-                {updatingId === (user._id || user.id) && (
-                  <div className="absolute inset-0 bg-white/60 dark:bg-slate-950/60 z-10 flex items-center justify-center backdrop-blur-xs">
-                    <span className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></span>
-                  </div>
-                )}
+        {performance.length === 0 ? (
+          <div className="text-center py-12 bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+            <Users className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+            <p className="text-sm font-bold text-slate-400 dark:text-slate-500">No active sales staff matching sales department or position found.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {performance.map(({ user, stats }) => {
+              const isBDM = user.position?.toLowerCase().includes("manager") || user.position?.toLowerCase().includes("bdm");
+              return (
+                <div
+                  key={user._id || user.id}
+                  className="glass-panel p-6 bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm space-y-6 relative overflow-hidden"
+                >
+                  {updatingId === (user._id || user.id) && (
+                    <div className="absolute inset-0 bg-white/60 dark:bg-slate-950/60 z-10 flex items-center justify-center backdrop-blur-[2px]">
+                      <span className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></span>
+                    </div>
+                  )}
 
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  {/* rep card bio */}
-                  <div className="flex gap-4">
-                    <img
-                      src={user.avatar || (user.gender === "female" 
-                        ? "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=64&h=64"
-                        : "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=64&h=64")}
-                      alt={user.name}
-                      className="w-12 h-12 rounded-2xl object-cover ring-4 ring-slate-100 dark:ring-slate-850"
-                    />
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="text-base font-extrabold text-slate-900 dark:text-white">{user.name}</h4>
-                        <span className={`text-[9px] font-bold px-2 py-0.5 border rounded-lg ${isBDM ? "text-indigo-600 bg-indigo-50 border-indigo-150 dark:bg-indigo-950/40" : "text-sky-500 bg-sky-50 border-sky-100 dark:bg-sky-950/40"}`}>
-                          {isBDM ? "BDM (Manager)" : "BDA (Associate)"}
-                        </span>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    {/* rep card bio */}
+                    <div className="flex gap-4">
+                      <img
+                        src={user.avatar || (user.gender === "female" 
+                          ? "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=64&h=64"
+                          : "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=64&h=64")}
+                        alt={user.name}
+                        className="w-12 h-12 rounded-2xl object-cover ring-4 ring-slate-100 dark:ring-slate-800"
+                      />
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-base font-extrabold text-slate-900 dark:text-white">{user.name}</h4>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 border rounded-lg ${isBDM ? "text-indigo-600 bg-indigo-50 border-indigo-100 dark:bg-indigo-950/40" : "text-sky-500 bg-sky-50 border-sky-100 dark:bg-sky-950/40"}`}>
+                            {isBDM ? "BDM (Manager)" : "BDA (Associate)"}
+                          </span>
+                        </div>
+                        <p className="text-xs font-semibold text-slate-400 mt-0.5">{user.email} • {user.empId}</p>
                       </div>
-                      <p className="text-xs font-semibold text-slate-400 mt-0.5">{user.email} • {user.empId}</p>
+                    </div>
+
+                    {/* promotion switcher trigger */}
+                    <div className="relative shrink-0">
+                      <select
+                        value={user.position}
+                        onChange={(e) => handleRoleSwap(user._id || user.id, e.target.value)}
+                        className="px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold focus:outline-none text-slate-500"
+                      >
+                        <option value="Business Development Associate">Set as BDA (Associate)</option>
+                        <option value="Business Development Manager">Set as BDM (Manager)</option>
+                      </select>
                     </div>
                   </div>
 
-                  {/* promotion switcher trigger */}
-                  <div className="relative shrink-0">
-                    <select
-                      value={user.position}
-                      onChange={(e) => handleRoleSwap(user._id || user.id, e.target.value)}
-                      className="px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold focus:outline-hidden text-slate-500"
-                    >
-                      <option value="Business Development Associate">Set as BDA (Associate)</option>
-                      <option value="Business Development Manager">Set as BDM (Manager)</option>
-                    </select>
+                  {/* stats aggregates */}
+                  <div className="grid grid-cols-3 gap-4 pt-4 border-t border-slate-200 dark:border-slate-900">
+                    <div className="p-3.5 bg-slate-50 dark:bg-slate-900/60 rounded-xl text-center border border-slate-100 dark:border-slate-900">
+                      <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block mb-1">
+                        Leads Pipeline
+                      </span>
+                      <span className="text-base font-extrabold text-slate-900 dark:text-white block">
+                        {stats.leads} Leads
+                      </span>
+                    </div>
+                    <div className="p-3.5 bg-slate-50 dark:bg-slate-900/60 rounded-xl text-center border border-slate-100 dark:border-slate-900">
+                      <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block mb-1">
+                        VoIP Connected
+                      </span>
+                      <span className="text-base font-extrabold text-slate-900 dark:text-white block flex items-center justify-center gap-0.5">
+                        {stats.calls}
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 inline" />
+                      </span>
+                    </div>
+                    <div className="p-3.5 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-xl text-center border border-indigo-100/30">
+                      <span className="text-[10px] text-indigo-500 dark:text-indigo-400 font-extrabold uppercase tracking-wider block mb-1">
+                        Closed Revenue
+                      </span>
+                      <span className="text-base font-extrabold text-indigo-600 dark:text-indigo-500 block">
+                        ₹{stats.revenue}L
+                      </span>
+                    </div>
                   </div>
-                </div>
 
-                {/* stats aggregates */}
-                <div className="grid grid-cols-3 gap-4 pt-4 border-t border-slate-150 dark:border-slate-900">
-                  <div className="p-3.5 bg-slate-50 dark:bg-slate-900/60 rounded-xl text-center border border-slate-100 dark:border-slate-900">
-                    <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block mb-1">
-                      Leads Pipeline
+                  {/* extra badges/achievements */}
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-900 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                      <Navigation className="w-3 h-3 text-indigo-500" />
+                      {stats.meetings} GPS check-ins audited
                     </span>
-                    <span className="text-base font-extrabold text-slate-900 dark:text-white block">
-                      {stats.leads} Leads
-                    </span>
-                  </div>
-                  <div className="p-3.5 bg-slate-50 dark:bg-slate-900/60 rounded-xl text-center border border-slate-100 dark:border-slate-900">
-                    <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block mb-1">
-                      VoIP Connected
-                    </span>
-                    <span className="text-base font-extrabold text-slate-900 dark:text-white block flex items-center justify-center gap-0.5">
-                      {stats.calls}
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 inline" />
-                    </span>
-                  </div>
-                  <div className="p-3.5 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-xl text-center border border-indigo-100/30">
-                    <span className="text-[10px] text-indigo-500 dark:text-indigo-400 font-extrabold uppercase tracking-wider block mb-1">
-                      Closed Revenue
-                    </span>
-                    <span className="text-base font-extrabold text-indigo-600 dark:text-indigo-455 block">
-                      ₹{stats.revenue}L
+                    <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-900 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                      <FileText className="w-3 h-3 text-indigo-500" />
+                      {stats.dwrs} DWR submittals log
                     </span>
                   </div>
                 </div>
-
-                {/* extra badges/achievements */}
-                <div className="flex flex-wrap gap-2 pt-2">
-                  <span className="text-[9px] font-bold text-slate-450 dark:text-slate-400 bg-slate-100 dark:bg-slate-900 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                    <Navigation className="w-3 h-3 text-indigo-500" />
-                    {stats.meetings} GPS check-ins audited
-                  </span>
-                  <span className="text-[9px] font-bold text-slate-450 dark:text-slate-400 bg-slate-100 dark:bg-slate-900 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                    <FileText className="w-3 h-3 text-indigo-500" />
-                    {stats.dwrs} DWR submittals log
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Ledger Section (Pipeline + DWRs) */}

@@ -94,7 +94,9 @@ export default function HRSidebar({
       >
         <div className="flex items-center gap-3">
           <img 
-            src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=256&h=256" 
+            src={profileData?.avatar || (profileData?.gender === 'female' 
+              ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=256&h=256' 
+              : 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=256&h=256')} 
             alt="HR User Avatar" 
             className="w-10 h-10 rounded-full object-cover ring-2 ring-indigo-500/20"
           />

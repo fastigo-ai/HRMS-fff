@@ -8,16 +8,24 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
-import { DatabaseService } from '../../services/api';
+import { DatabaseService, authenticatedFetch } from '../../services/api';
+import { useAuthStore } from '../../store/authStore';
+import { useEmployeeStore } from '../../store/employeeStore';
+import EmployeeAttendance from '../employees/Attendance';
+import Modal from '../../shared/ui/Modal';
 
 export default function HRAttendance({
   triggerToast
 }) {
+  const [activeTab, setActiveTab] = useState('org'); // 'org' | 'my'
   const [activeView, setActiveView] = useState('heatmap');
   const [calendarDays, setCalendarDays] = useState([]);
   const [anomalies, setAnomalies] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [visibleCount, setVisibleCount] = useState(10);
+  const [allRawLogs, setAllRawLogs] = useState([]);
+  const [selectedEmpForDetail, setSelectedEmpForDetail] = useState(null);
   const [overviewStats, setOverviewStats] = useState({
     presentToday: 0,
     lateToday: 0,
@@ -25,6 +33,44 @@ export default function HRAttendance({
     complianceRate: 100,
     totalEmployees: 0
   });
+
+  // For Personal Attendance
+  const { clockedIn, elapsedTime, toggleClock, clockOutCompleted, setCurrentTab } = useAuthStore();
+  const [personalAttendance, setPersonalAttendance] = useState({
+    logs: [],
+    stats: {
+      totalHours: 0,
+      avgCheckIn: "09:00 AM",
+      presentDays: 0,
+      lateMarks: 0
+    }
+  });
+
+  const fetchPersonalAttendance = async () => {
+    try {
+      const res = await authenticatedFetch("http://localhost:8000/api/attendance/my");
+      const data = await res.json();
+      if (res.ok) {
+        setPersonalAttendance({
+          logs: data.data.logs || [],
+          stats: data.data.stats || {
+            totalHours: 0,
+            avgCheckIn: "09:00 AM",
+            presentDays: 0,
+            lateMarks: 0
+          }
+        });
+      }
+    } catch (err) {
+      console.error("Failed to fetch personal attendance:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'my') {
+      fetchPersonalAttendance();
+    }
+  }, [activeTab, clockedIn]);
 
   // Load attendance data asynchronously
   useEffect(() => {
@@ -38,14 +84,22 @@ export default function HRAttendance({
         if (data.stats) {
           setOverviewStats(data.stats);
         }
+        const rawLogs = await DatabaseService.getHRAttendanceLogsAll();
+        setAllRawLogs(rawLogs);
       } catch {
         triggerToast('Failed to fetch attendance audits.', 'error');
       } finally {
         setLoading(false);
       }
     };
-    loadLogs();
-  }, [triggerToast]);
+    if (activeTab === 'org') {
+      loadLogs();
+    }
+  }, [triggerToast, activeTab, clockedIn]);
+
+  useEffect(() => {
+    setVisibleCount(10);
+  }, [auditLogs.length]);
 
   const handleResolveAnomaly = async (id, name) => {
     try {
@@ -94,8 +148,51 @@ export default function HRAttendance({
 
   return (
     <div className="space-y-6">
-      
-      {/* Top Header details */}
+
+      {/* Premium Tab Switcher */}
+      <div className="flex border-b border-slate-100 dark:border-slate-800 pb-px gap-6 mb-2">
+        <button
+          onClick={() => setActiveTab('org')}
+          className={`pb-3 text-xs font-bold transition-all relative ${
+            activeTab === 'org' 
+              ? 'text-indigo-600 dark:text-indigo-400 font-extrabold' 
+              : 'text-slate-400 dark:text-slate-500 hover:text-slate-600'
+          }`}
+        >
+          Organization Attendance
+          {activeTab === 'org' && (
+            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-full" />
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab('my')}
+          className={`pb-3 text-xs font-bold transition-all relative ${
+            activeTab === 'my' 
+              ? 'text-indigo-600 dark:text-indigo-400 font-extrabold' 
+              : 'text-slate-400 dark:text-slate-500 hover:text-slate-600'
+          }`}
+        >
+          My Attendance
+          {activeTab === 'my' && (
+            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-full" />
+          )}
+        </button>
+      </div>
+
+      {activeTab === 'my' ? (
+        <EmployeeAttendance 
+          clockedIn={clockedIn}
+          clockOutCompleted={clockOutCompleted}
+          toggleClockInOut={() => toggleClock(triggerToast)}
+          elapsedTime={elapsedTime}
+          triggerToast={triggerToast}
+          logs={personalAttendance.logs}
+          stats={personalAttendance.stats}
+          setCurrentTab={setCurrentTab}
+        />
+      ) : (
+        <>
+          {/* Top Header details */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-slate-900 dark:text-white">Attendance Overview</h2>
@@ -338,81 +435,162 @@ export default function HRAttendance({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 dark:divide-slate-900">
-              {auditLogs.map((log, idx) => {
-                return (
-                  <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors">
-                    
-                    {/* Profile */}
-                    <td className="py-3.5 pr-4">
-                      <div className="flex items-center gap-2.5">
-                        <div className="leading-tight">
-                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">{log.name}</span>
-                          <span className="text-[10px] text-slate-400 font-semibold block">{log.role}</span>
+              {(() => {
+                const totalItems = auditLogs.length;
+                const currentLogs = auditLogs.slice(0, visibleCount);
+
+                return currentLogs.map((log, idx) => {
+                  return (
+                    <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors">
+                      
+                      {/* Profile */}
+                      <td className="py-3.5 pr-4">
+                        <div className="flex items-center gap-2.5">
+                          <div className="leading-tight">
+                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">{log.name}</span>
+                            <span className="text-[10px] text-slate-400 font-semibold block">{log.role}</span>
+                          </div>
                         </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* Check In / Out */}
-                    <td className="py-3.5 px-4 font-semibold text-slate-700 dark:text-slate-300">
-                      <div className="space-y-0.5">
-                        <span className="block font-bold">{log.timeIn}</span>
-                        <span className="block text-[9px] text-slate-450">{log.timeOut}</span>
-                      </div>
-                    </td>
+                      {/* Check In / Out */}
+                      <td className="py-3.5 px-4 font-semibold text-slate-700 dark:text-slate-300">
+                        <div className="space-y-0.5">
+                          <span className="block font-bold">{log.timeIn}</span>
+                          <span className="block text-[9px] text-slate-450">{log.timeOut}</span>
+                        </div>
+                      </td>
 
-                    {/* Mode tag */}
-                    <td className="py-3.5 px-4">
-                      <span className="px-2 py-0.5 rounded text-[8px] font-extrabold border uppercase tracking-wider bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-300 border-slate-200 dark:border-slate-800">
-                        {log.mode}
-                      </span>
-                    </td>
+                      {/* Mode tag */}
+                      <td className="py-3.5 px-4">
+                        <span className="px-2 py-0.5 rounded text-[8px] font-extrabold border uppercase tracking-wider bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-300 border-slate-200 dark:border-slate-800">
+                          {log.mode}
+                        </span>
+                      </td>
 
-                    {/* Status */}
-                    <td className="py-3.5 px-4 font-bold">
-                      <div className="flex items-center gap-1">
-                        <span className={`text-[11px] ${log.status.includes('Lateness') ? 'text-amber-600' : 'text-emerald-600'}`}>{log.status}</span>
-                      </div>
-                    </td>
+                      {/* Status */}
+                      <td className="py-3.5 px-4 font-bold">
+                        <div className="flex items-center gap-1">
+                          <span className={`text-[11px] ${log.status.includes('Lateness') ? 'text-amber-600' : 'text-emerald-600'}`}>{log.status}</span>
+                        </div>
+                      </td>
 
-                    {/* Location */}
-                    <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-1.5 text-slate-500 font-semibold">
-                        <MapPin className="w-3.5 h-3.5 text-slate-450 text-slate-400" />
-                        <span>{log.coords}</span>
-                      </div>
-                    </td>
+                      {/* Location */}
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-1.5 text-slate-500 font-semibold">
+                          <MapPin className="w-3.5 h-3.5 text-slate-450 text-slate-400" />
+                          <span>{log.coords}</span>
+                        </div>
+                      </td>
 
-                    {/* Action trigger */}
-                    <td className="py-3.5 pl-4 text-right">
-                      <button 
-                        onClick={() => triggerToast(`Auditing overrides for ${log.name}`)}
-                        className="p-1.5 text-slate-450 text-slate-400 hover:text-indigo-650 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition"
-                      >
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
-                    </td>
+                      {/* Action trigger */}
+                      <td className="py-3.5 pl-4 text-right">
+                        <button 
+                          type="button"
+                          onClick={async (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            
+                            try {
+                              // Fetch latest raw logs directly from server to show details without refresh
+                              const latestLogs = await DatabaseService.getHRAttendanceLogsAll();
+                              setAllRawLogs(latestLogs);
+                              const empLogs = latestLogs.filter(raw => {
+                                if (!raw.employee) return false;
+                                const empName = typeof raw.employee === 'object' ? raw.employee.name : null;
+                                return empName === log.name;
+                              });
+                              
+                              setSelectedEmpForDetail({
+                                name: log.name,
+                                role: log.role,
+                                logs: empLogs
+                              });
+                            } catch {
+                              // Fallback to local logs
+                              const empLogs = allRawLogs.filter(raw => {
+                                if (!raw.employee) return false;
+                                const empName = typeof raw.employee === 'object' ? raw.employee.name : null;
+                                return empName === log.name;
+                              });
+                              setSelectedEmpForDetail({
+                                name: log.name,
+                                role: log.role,
+                                logs: empLogs
+                              });
+                            }
+                          }}
+                          className="p-1.5 text-slate-455 text-slate-400 hover:text-indigo-655 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition"
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+                      </td>
 
-                  </tr>
-                );
-              })}
+                    </tr>
+                  );
+                });
+              })()}
             </tbody>
           </table>
         </div>
 
-        {/* Pagination bar matching Screenshot 3 */}
-        <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-900 text-[10px] text-slate-400 font-bold gap-3">
-          <span>Showing 1-10 of 1,522 records</span>
-          
-          <div className="flex items-center gap-1">
-            <button className="p-1 text-slate-400 hover:text-slate-650"><ChevronLeft className="w-3.5 h-3.5" /></button>
-            <button className="px-2 py-0.5 bg-indigo-600 text-white rounded font-extrabold">1</button>
-            <button className="px-2 py-0.5 hover:bg-slate-100 dark:hover:bg-slate-900 rounded">2</button>
-            <button className="px-2 py-0.5 hover:bg-slate-100 dark:hover:bg-slate-900 rounded">3</button>
-            <button className="p-1 text-slate-400 hover:text-slate-655"><ChevronRight className="w-3.5 h-3.5" /></button>
-          </div>
-        </div>
+        {/* Load more details controls instead of numbered pagination */}
+        {(() => {
+          const totalItems = auditLogs.length;
+          const currentLimit = Math.min(visibleCount, totalItems);
 
+          return (
+            <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-900 text-[10px] text-slate-400 font-bold gap-3">
+              <span>Showing 1-{currentLimit} of {totalItems} records</span>
+              
+              {visibleCount < totalItems && (
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setVisibleCount(prev => prev + 10);
+                    triggerToast("Loaded next 10 details.");
+                  }}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl transition shadow shadow-indigo-600/10 hover:shadow-indigo-600/20 text-[10px]"
+                >
+                  Load next 10 details
+                </button>
+              )}
+            </div>
+          );
+        })()}
       </div>
+    </>
+
+        
+      )}
+
+      {/* Monthly Attendance Details Modal */}
+      <Modal 
+        isOpen={!!selectedEmpForDetail} 
+        onClose={() => setSelectedEmpForDetail(null)} 
+        title={`${selectedEmpForDetail?.name}'s Monthly Attendance Details`}
+        size="6xl"
+      >
+        {selectedEmpForDetail && (
+          <div className="space-y-6">
+            <EmployeeAttendance 
+              clockedIn={false}
+              clockOutCompleted={true}
+              toggleClockInOut={() => {}}
+              elapsedTime=""
+              triggerToast={triggerToast}
+              logs={selectedEmpForDetail.logs}
+              isReadOnly={true}
+              stats={{
+                totalHours: selectedEmpForDetail.logs.reduce((acc, raw) => acc + (parseFloat(raw.timeSpent) || 0), 0).toFixed(1),
+                avgCheckIn: selectedEmpForDetail.logs.length > 0 ? "09:12 AM" : "09:00 AM",
+                presentDays: selectedEmpForDetail.logs.length,
+                lateMarks: selectedEmpForDetail.logs.filter(raw => raw.status === "Late").length
+              }}
+            />
+          </div>
+        )}
+      </Modal>
 
     </div>
   );

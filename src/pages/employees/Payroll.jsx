@@ -61,12 +61,23 @@ export default function Payroll({
   const [selectedSlip, setSelectedSlip] = useState(null);
   const [downloadingPayslip, setDownloadingPayslip] = useState(null);
 
-  // Get active payslip or fallback to mock
+  // Get active payslip or fallback to joining salary from profile
   const latestPayslip = payslips && payslips.length > 0 ? payslips[0] : null;
 
-  const baseSalary = latestPayslip ? latestPayslip.baseSalary : 0;
-  const taxWithheld = latestPayslip ? latestPayslip.taxWithheld : 0;
-  const netPay = latestPayslip ? latestPayslip.netPay : 0;
+  // Derive salary figures: use disbursed payslip first, then profile joiningSalary as fallback
+  const joiningBaseSalary = parseFloat(
+    profileData?.joiningSalary ||
+    profileData?.bankDetails?.joiningSalary ||
+    0
+  );
+
+  const baseSalary  = latestPayslip ? latestPayslip.baseSalary  : joiningBaseSalary;
+  const taxWithheld = latestPayslip ? latestPayslip.taxWithheld : Math.round(joiningBaseSalary * 0.15);
+  const netPay      = latestPayslip ? latestPayslip.netPay      : baseSalary - taxWithheld;
+
+  // Flag that we're showing the profile fallback (no HR disbursement yet)
+  const isProfileFallback = !latestPayslip && joiningBaseSalary > 0;
+  const isNoData = !latestPayslip && joiningBaseSalary === 0;
 
   // Dynamic salary split
   const salaryBasic = Math.round(baseSalary * 0.7);
@@ -135,7 +146,7 @@ export default function Payroll({
           <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Gross Earnings</span>
           <div className="flex items-baseline">
             <span className="text-2xl font-extrabold text-slate-900 dark:text-white">₹{baseSalary.toLocaleString('en-IN')}</span>
-            <span className="text-xs text-emerald-600 font-bold ml-2">/ month</span>
+            <span className="text-xs text-emerald-600 font-bold ml-2">/ yearly</span>
           </div>
           <p className="text-[10px] text-slate-400 font-semibold mt-2">Sum of Basic Salary & HRA Allowance</p>
         </div>
@@ -145,7 +156,7 @@ export default function Payroll({
           <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Total Deductions</span>
           <div className="flex items-baseline">
             <span className="text-2xl font-extrabold text-rose-600">₹{taxWithheld.toLocaleString('en-IN')}</span>
-            <span className="text-xs text-rose-500 font-bold ml-2">/ month</span>
+            <span className="text-xs text-rose-500 font-bold ml-2">/ yearly</span>
           </div>
           <p className="text-[10px] text-slate-400 font-semibold mt-2">Sum of 15% standard Income Tax withheld</p>
         </div>
@@ -155,12 +166,31 @@ export default function Payroll({
           <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Net Take-Home</span>
           <div className="flex items-baseline">
             <span className="text-2xl font-extrabold text-slate-900 dark:text-white">₹{netPay.toLocaleString('en-IN')}</span>
-            <span className="text-xs text-indigo-500 font-bold ml-2">/ month</span>
+            <span className="text-xs text-indigo-500 font-bold ml-2">/ yearly</span>
           </div>
           <p className="text-[10px] text-indigo-600 font-semibold mt-2">Direct bank clearing amount</p>
         </div>
 
       </div>
+
+      {/* Data source context banner */}
+      {isProfileFallback && (
+        <div className="flex items-start gap-3 px-4 py-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-xl text-xs">
+          <span className="text-amber-500 shrink-0 mt-0.5">ℹ</span>
+          <p className="text-amber-700 dark:text-amber-400 font-semibold leading-relaxed">
+            No payslip disbursed by HR yet. Figures below are estimated from your <strong>joining salary</strong> on record (₹{joiningBaseSalary.toLocaleString('en-IN')}). They will update automatically once HR generates your first official payslip.
+          </p>
+        </div>
+      )}
+
+      {isNoData && (
+        <div className="flex items-start gap-3 px-4 py-3 bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-xl text-xs">
+          <span className="text-slate-400 shrink-0 mt-0.5">ℹ</span>
+          <p className="text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">
+            No salary data found for your profile. Please contact HR to ensure your joining salary and payroll details are configured in the system.
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
@@ -266,7 +296,7 @@ export default function Payroll({
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => window.print()}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-755 text-white text-xs font-bold rounded-lg transition"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition"
                 >
                   <Printer className="w-3.5 h-3.5" />
                   Print / Save PDF

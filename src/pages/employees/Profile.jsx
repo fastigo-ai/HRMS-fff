@@ -40,7 +40,9 @@ export default function Profile({
       <div className="glass-panel p-6 rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm flex flex-col md:flex-row items-center md:items-start gap-6">
         <div className="relative shrink-0">
           <img 
-            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=256&h=256" 
+            src={profileData?.avatar || (profileData?.gender === 'female' 
+              ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=256&h=256'
+              : 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=256&h=256')} 
             alt="Profile Avatar" 
             className="w-24 h-24 rounded-2xl object-cover ring-4 ring-indigo-500/10 shadow-md"
           />

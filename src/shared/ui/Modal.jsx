@@ -27,6 +27,11 @@ export default function Modal({
       case 'sm': return 'max-w-md';
       case 'lg': return 'max-w-2xl';
       case 'xl': return 'max-w-4xl';
+      case '2xl': return 'max-w-5xl';
+      case '3xl': return 'max-w-6xl';
+      case '4xl': return 'max-w-7xl';
+      case '5xl': return 'max-w-7xl';
+      case '6xl': return 'max-w-[1200px]';
       default: return 'max-w-lg';
     }
   };

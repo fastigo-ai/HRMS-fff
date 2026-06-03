@@ -126,6 +126,10 @@ export const useUiStore = (selectorFn) => {
         }
       },
 
+      setNotifications: (list) => {
+        dispatch(setNotifications(list));
+      },
+
       addNotification: (notif) => {
         dispatch(addNotification(notif));
       }

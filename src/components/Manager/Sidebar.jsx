@@ -8,7 +8,9 @@ import {
   X,
   ShieldAlert,
   TrendingUp,
-  CalendarDays
+  CalendarDays,
+  IndianRupee,
+  Bell
 } from 'lucide-react';
 
 import { useAuthStore } from '../../store/authStore';
@@ -28,7 +30,9 @@ export default function PMSidebar({
     { id: 'pm-approvals', label: 'Approvals Hub', icon: ClipboardCheck },
     { id: 'pm-milestones', label: 'Milestones Gantt', icon: Milestone },
     { id: 'pm-holidays', label: 'Holiday Calendar', icon: CalendarDays },
-    { id: 'pm-sales-audit', label: 'Sales Audit', icon: TrendingUp }
+    { id: 'pm-sales-audit', label: 'Sales Audit', icon: TrendingUp },
+    { id: 'pm-payroll', label: 'Payroll', icon: IndianRupee },
+    { id: 'pm-notifications', label: 'Notifications', icon: Bell },
   ];
 
   return (
@@ -90,7 +94,9 @@ export default function PMSidebar({
       >
         <div className="flex items-center gap-3">
           <img 
-            src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=256&h=256" 
+            src={profileData?.avatar || (profileData?.gender === 'female' 
+              ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=256&h=256' 
+              : 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=256&h=256')} 
             alt="PM User Avatar" 
             className="w-10 h-10 rounded-full object-cover ring-2 ring-violet-500/20"
           />

@@ -144,7 +144,9 @@ export default function HRHeader({
             <span className="text-[10px] text-slate-400 font-medium">{profileData?.position || 'HR Director'}</span>
           </div>
           <img 
-            src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=256&h=256" 
+            src={profileData?.avatar || (profileData?.gender === 'female' 
+              ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=256&h=256' 
+              : 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=256&h=256')} 
             alt="HR Director Avatar" 
             className="w-9 h-9 rounded-full object-cover ring-2 ring-indigo-500/10 cursor-pointer"
             onClick={() => setCurrentTab('hr-profile')}

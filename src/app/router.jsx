@@ -47,6 +47,8 @@ const LazyManagerSalesAudit = lazy(() => import('../modules/manager/pages/SalesA
 const LazyEmployeeHolidays = lazy(() => import('../modules/employee/pages/Holidays'));
 const LazyHRHolidays = lazy(() => import('../modules/hr/pages/Holidays'));
 const LazyManagerHolidays = lazy(() => import('../modules/manager/pages/Holidays'));
+const LazyManagerPayroll = lazy(() => import('../modules/manager/pages/Payroll'));
+const LazyManagerNotifications = lazy(() => import('../modules/manager/pages/Notifications'));
 
 const PageSuspense = ({ children }) => (
   <Suspense fallback={<Loader size="lg" text="Decompressing modular bundle..." />}>
@@ -158,7 +160,9 @@ export const appRouter = createBrowserRouter([
       { path: 'milestones', element: <PageSuspense><LazyManagerMilestones /></PageSuspense> },
       { path: 'sales-audit', element: <PageSuspense><LazyManagerSalesAudit /></PageSuspense> },
       { path: 'profile', element: <PageSuspense><LazyManagerProfile /></PageSuspense> },
-      { path: 'holidays', element: <PageSuspense><LazyManagerHolidays /></PageSuspense> }
+      { path: 'holidays', element: <PageSuspense><LazyManagerHolidays /></PageSuspense> },
+      { path: 'payroll', element: <PageSuspense><LazyManagerPayroll /></PageSuspense> },
+      { path: 'notifications', element: <PageSuspense><LazyManagerNotifications /></PageSuspense> }
     ]
   },
   {
