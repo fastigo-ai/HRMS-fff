@@ -137,7 +137,7 @@ export const useAuthStore = (selectorFn) => {
 
       login: async (email, password) => {
         try {
-          const res = await fetch("http://localhost:8000/api/auth/login", {
+          const res = await fetch("https://hrms-bb.onrender.com/api/auth/login", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -175,7 +175,7 @@ export const useAuthStore = (selectorFn) => {
             ? payload 
             : { name: payload, email: arg2, password: arg3, role: arg4 };
 
-          const res = await fetch("http://localhost:8000/api/auth/signup", {
+          const res = await fetch("https://hrms-bb.onrender.com/api/auth/signup", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -209,7 +209,7 @@ export const useAuthStore = (selectorFn) => {
 
       logout: async () => {
         try {
-          await fetch("http://localhost:8000/api/auth/logout", {
+          await fetch("https://hrms-bb.onrender.com/api/auth/logout", {
             method: "POST",
             credentials: "include",
           });
@@ -235,7 +235,7 @@ export const useAuthStore = (selectorFn) => {
 
       refreshSession: async () => {
         try {
-          const res = await fetch("http://localhost:8000/api/auth/refresh", {
+          const res = await fetch("https://hrms-bb.onrender.com/api/auth/refresh", {
             method: "POST",
             credentials: "include",
           });
@@ -266,7 +266,7 @@ export const useAuthStore = (selectorFn) => {
       updateProfile: async (newProfile) => {
         try {
           const token = localStorage.getItem('Fastigo X_token');
-          const res = await fetch("http://localhost:8000/api/auth/profile", {
+          const res = await fetch("https://hrms-bb.onrender.com/api/auth/profile", {
             method: "PATCH",
             headers: {
               "Content-Type": "application/json",
@@ -309,7 +309,7 @@ export const useAuthStore = (selectorFn) => {
         const token = localStorage.getItem('Fastigo X_token');
         try {
           if (!clockedIn) {
-            const res = await fetch("http://localhost:8000/api/attendance/clock-in", {
+            const res = await fetch("https://hrms-bb.onrender.com/api/attendance/clock-in", {
               method: "POST",
               headers: { 
                 "Content-Type": "application/json",
@@ -325,7 +325,7 @@ export const useAuthStore = (selectorFn) => {
             dispatch(setClockState({ clockedIn: true, clockInTime: data.data.attendance.clockIn, clockOutCompleted: false }));
             if (triggerToast) triggerToast('Clocked In successfully! Current geofence checked.');
           } else {
-            const res = await fetch("http://localhost:8000/api/attendance/clock-out", {
+            const res = await fetch("https://hrms-bb.onrender.com/api/attendance/clock-out", {
               method: "POST",
               headers: { 
                 "Content-Type": "application/json",
@@ -351,7 +351,7 @@ export const useAuthStore = (selectorFn) => {
       checkTodayClockStatus: async () => {
         const token = localStorage.getItem('Fastigo X_token');
         try {
-          const res = await fetch("http://localhost:8000/api/attendance/today", {
+          const res = await fetch("https://hrms-bb.onrender.com/api/attendance/today", {
             headers: {
               ...(token ? { "Authorization": `Bearer ${token}` } : {}),
             },

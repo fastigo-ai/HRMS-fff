@@ -33,7 +33,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchPersonalStats = async () => {
       try {
-        const res = await authenticatedFetch("http://localhost:8000/api/attendance/my");
+        const res = await authenticatedFetch("https://hrms-bb.onrender.com/api/attendance/my");
         const data = await res.json();
         if (res.ok) {
           setAttendanceStats(data.data.stats || {

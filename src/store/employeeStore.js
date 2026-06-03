@@ -71,14 +71,14 @@ export const useEmployeeStore = (selectorFn) => {
           dispatch(setPayslips(slipList));
 
           // Fetch leaves from database
-          const res = await authenticatedFetch("http://localhost:8000/api/leaves/my");
+          const res = await authenticatedFetch("https://hrms-bb.onrender.com/api/leaves/my");
           const data = await res.json();
           if (res.ok) {
             dispatch(setLeaveHistory(data.data.leaves));
           }
 
           // Fetch latest profile to sync leaveBalances, position, details etc.
-          const resProfile = await authenticatedFetch("http://localhost:8000/api/auth/profile");
+          const resProfile = await authenticatedFetch("https://hrms-bb.onrender.com/api/auth/profile");
           const dataProfile = await resProfile.json();
           if (resProfile.ok) {
             dispatch(setProfile(dataProfile.data.user));
@@ -176,7 +176,7 @@ export const useEmployeeStore = (selectorFn) => {
 
       applyLeave: async (leaveRequest, triggerToast) => {
         try {
-          const res = await authenticatedFetch("http://localhost:8000/api/leaves/my", {
+          const res = await authenticatedFetch("https://hrms-bb.onrender.com/api/leaves/my", {
             method: "POST",
             body: JSON.stringify(leaveRequest),
           });
