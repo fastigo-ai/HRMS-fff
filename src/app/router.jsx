@@ -12,43 +12,61 @@ import RoleGuard from '../modules/auth/RoleGuard';
 import Loader from '../shared/ui/Loader';
 import { useAuthStore } from '../store/authStore';
 
+// Helper to safely load chunks, retrying via page reload on deployment updates
+const lazyWithRetry = (componentImport) =>
+  lazy(async () => {
+    try {
+      return await componentImport();
+    } catch (error) {
+      const isChunkLoadFailed = error.message && (
+        error.message.includes('Failed to fetch dynamically imported module') ||
+        error.message.includes('Importing a module script failed')
+      );
+      if (isChunkLoadFailed) {
+        console.warn('Chunk load failed. Reloading page...');
+        window.location.reload();
+      }
+      throw error;
+    }
+  });
+
 // Code splitting / Lazy-loaded components
-const LazyLogin = lazy(() => import('../modules/auth/pages/Login'));
-const LazyRegister = lazy(() => import('../modules/auth/pages/Register'));
+const LazyLogin = lazyWithRetry(() => import('../modules/auth/pages/Login'));
+const LazyRegister = lazyWithRetry(() => import('../modules/auth/pages/Register'));
 
-const LazyEmployeeDashboard = lazy(() => import('../modules/employee/pages/Dashboard'));
-const LazyEmployeeProfile = lazy(() => import('../modules/employee/pages/Profile'));
-const LazyEmployeeAttendance = lazy(() => import('../modules/employee/pages/Attendance'));
-const LazyEmployeeWFHRequest = lazy(() => import('../modules/employee/pages/WFHRequest'));
-const LazyEmployeeLeaves = lazy(() => import('../modules/employee/pages/Leaves'));
-const LazyEmployeePayroll = lazy(() => import('../modules/employee/pages/Payroll'));
-const LazyEmployeeTasks = lazy(() => import('../modules/employee/pages/Tasks'));
-const LazyEmployeeNotifications = lazy(() => import('../modules/employee/pages/Notifications'));
-const LazyEmployeeSettings = lazy(() => import('../modules/employee/pages/Settings'));
+const LazyEmployeeDashboard = lazyWithRetry(() => import('../modules/employee/pages/Dashboard'));
+const LazyEmployeeProfile = lazyWithRetry(() => import('../modules/employee/pages/Profile'));
+const LazyEmployeeAttendance = lazyWithRetry(() => import('../modules/employee/pages/Attendance'));
+const LazyEmployeeWFHRequest = lazyWithRetry(() => import('../modules/employee/pages/WFHRequest'));
+const LazyEmployeeLeaves = lazyWithRetry(() => import('../modules/employee/pages/Leaves'));
+const LazyEmployeePayroll = lazyWithRetry(() => import('../modules/employee/pages/Payroll'));
+const LazyEmployeeTasks = lazyWithRetry(() => import('../modules/employee/pages/Tasks'));
+const LazyEmployeeNotifications = lazyWithRetry(() => import('../modules/employee/pages/Notifications'));
+const LazyEmployeeSettings = lazyWithRetry(() => import('../modules/employee/pages/Settings'));
 
-const LazyHRDashboard = lazy(() => import('../modules/hr/pages/Dashboard'));
-const LazyHREmployees = lazy(() => import('../modules/hr/pages/Employees'));
-const LazyHRDepartments = lazy(() => import('../modules/hr/pages/Departments'));
-const LazyHRAttendance = lazy(() => import('../modules/hr/pages/Attendance'));
-const LazyHRLeaves = lazy(() => import('../modules/hr/pages/Leaves'));
-const LazyHRPayroll = lazy(() => import('../modules/hr/pages/Payroll'));
-const LazyHRRecruitment = lazy(() => import('../modules/hr/pages/Recruitment'));
-const LazyHRReports = lazy(() => import('../modules/hr/pages/Reports'));
-const LazyHRProfile = lazy(() => import('../modules/hr/pages/Profile'));
+const LazyHRDashboard = lazyWithRetry(() => import('../modules/hr/pages/Dashboard'));
+const LazyHREmployees = lazyWithRetry(() => import('../modules/hr/pages/Employees'));
+const LazyHRDepartments = lazyWithRetry(() => import('../modules/hr/pages/Departments'));
+const LazyHRAttendance = lazyWithRetry(() => import('../modules/hr/pages/Attendance'));
+const LazyHRLeaves = lazyWithRetry(() => import('../modules/hr/pages/Leaves'));
+const LazyHRPayroll = lazyWithRetry(() => import('../modules/hr/pages/Payroll'));
+const LazyHRRecruitment = lazyWithRetry(() => import('../modules/hr/pages/Recruitment'));
+const LazyHRReports = lazyWithRetry(() => import('../modules/hr/pages/Reports'));
+const LazyHRProfile = lazyWithRetry(() => import('../modules/hr/pages/Profile'));
 
-const LazyManagerDashboard = lazy(() => import('../modules/manager/pages/Dashboard'));
-const LazyManagerTeam = lazy(() => import('../modules/manager/pages/Team'));
-const LazyManagerTasks = lazy(() => import('../modules/manager/pages/Tasks'));
-const LazyManagerApprovals = lazy(() => import('../modules/manager/pages/Approvals'));
-const LazyManagerMilestones = lazy(() => import('../modules/manager/pages/Milestones'));
-const LazyManagerProfile = lazy(() => import('../modules/manager/pages/Profile'));
-const LazyHRSalesAudit = lazy(() => import('../modules/hr/pages/SalesAudit'));
-const LazyManagerSalesAudit = lazy(() => import('../modules/manager/pages/SalesAudit'));
-const LazyEmployeeHolidays = lazy(() => import('../modules/employee/pages/Holidays'));
-const LazyHRHolidays = lazy(() => import('../modules/hr/pages/Holidays'));
-const LazyManagerHolidays = lazy(() => import('../modules/manager/pages/Holidays'));
-const LazyManagerPayroll = lazy(() => import('../modules/manager/pages/Payroll'));
-const LazyManagerNotifications = lazy(() => import('../modules/manager/pages/Notifications'));
+const LazyManagerDashboard = lazyWithRetry(() => import('../modules/manager/pages/Dashboard'));
+const LazyManagerTeam = lazyWithRetry(() => import('../modules/manager/pages/Team'));
+const LazyManagerTasks = lazyWithRetry(() => import('../modules/manager/pages/Tasks'));
+const LazyManagerApprovals = lazyWithRetry(() => import('../modules/manager/pages/Approvals'));
+const LazyManagerMilestones = lazyWithRetry(() => import('../modules/manager/pages/Milestones'));
+const LazyManagerProfile = lazyWithRetry(() => import('../modules/manager/pages/Profile'));
+const LazyHRSalesAudit = lazyWithRetry(() => import('../modules/hr/pages/SalesAudit'));
+const LazyManagerSalesAudit = lazyWithRetry(() => import('../modules/manager/pages/SalesAudit'));
+const LazyEmployeeHolidays = lazyWithRetry(() => import('../modules/employee/pages/Holidays'));
+const LazyHRHolidays = lazyWithRetry(() => import('../modules/hr/pages/Holidays'));
+const LazyManagerHolidays = lazyWithRetry(() => import('../modules/manager/pages/Holidays'));
+const LazyManagerPayroll = lazyWithRetry(() => import('../modules/manager/pages/Payroll'));
+const LazyManagerNotifications = lazyWithRetry(() => import('../modules/manager/pages/Notifications'));
 
 const PageSuspense = ({ children }) => (
   <Suspense fallback={<Loader size="lg" text="Decompressing modular bundle..." />}>
