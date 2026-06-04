@@ -384,6 +384,8 @@ export const hrService = {
     }
   },
 
+  
+
   addCandidate: async (candidate) => {
     try {
       const res = await authenticatedFetch(`${API_BASE_URL}/candidates`, {
