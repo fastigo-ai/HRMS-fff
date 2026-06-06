@@ -25,6 +25,7 @@ import Modal from '../../shared/ui/Modal';
 export default function HRRecruitment({ triggerToast }) {
   const [candidates, setCandidates] = useState([]);
   const [metrics, setMetrics] = useState({
+    openPositions: 0,
     totalCandidates: 0,
     activeCandidates: 0,
     avgTimeToHire: 18,
@@ -34,7 +35,6 @@ export default function HRRecruitment({ triggerToast }) {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Modal states
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
@@ -45,7 +45,8 @@ export default function HRRecruitment({ triggerToast }) {
     role: '',
     email: '',
     source: 'LinkedIn Outbound',
-    notes: ''
+    notes: '',
+    resume: null
   });
 
   const stages = ["Applied", "Screening", "Technical Round", "Manager Round", "Offer Extended", "Hired", "Rejected"];
@@ -77,6 +78,16 @@ export default function HRRecruitment({ triggerToast }) {
     }
   };
 
+  const handleUpdateOpenPositions = async (newCount) => {
+    try {
+      await DatabaseService.updateOpenPositions(newCount);
+      setMetrics(prev => ({ ...prev, openPositions: newCount }));
+      triggerToast(`Open Positions updated to ${newCount}!`);
+    } catch (err) {
+      triggerToast('Failed to update open positions.', 'error');
+    }
+  };
+
   // Fetch recruitment database state
   useEffect(() => {
     loadRecruitment();
@@ -98,7 +109,8 @@ export default function HRRecruitment({ triggerToast }) {
         role: '',
         email: '',
         source: 'LinkedIn Outbound',
-        notes: ''
+        notes: '',
+        resume: null
       });
       await loadRecruitment();
     } catch (err) {
@@ -196,9 +208,37 @@ export default function HRRecruitment({ triggerToast }) {
         {/* Stats and Action button panel */}
         <div className="flex items-center gap-4 flex-wrap">
           <div className="bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl p-4 flex gap-6 shadow-sm">
-            <div className="text-center">
+            <div className="text-center min-w-[110px]">
               <span className="text-[9px] font-bold text-slate-400 block tracking-widest uppercase">Open Positions</span>
-              <span className="text-lg font-extrabold text-slate-800 dark:text-white">8</span>
+              <div className="flex items-center justify-center gap-2 mt-1">
+                <button 
+                  type="button"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    const newCount = Math.max(0, (metrics.openPositions || 0) - 1);
+                    await handleUpdateOpenPositions(newCount);
+                  }}
+                  className="w-5 h-5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded flex items-center justify-center font-extrabold text-xs text-slate-700 dark:text-slate-350 transition"
+                  title="Decrease Open Positions"
+                >
+                  -
+                </button>
+                <span className="text-lg font-extrabold text-slate-850 dark:text-white min-w-[16px] text-center">
+                  {metrics.openPositions || 0}
+                </span>
+                <button 
+                  type="button"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    const newCount = (metrics.openPositions || 0) + 1;
+                    await handleUpdateOpenPositions(newCount);
+                  }}
+                  className="w-5 h-5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/50 border border-indigo-100/40 rounded flex items-center justify-center font-extrabold text-xs text-indigo-650 dark:text-indigo-400 transition"
+                  title="Increase Open Positions"
+                >
+                  +
+                </button>
+              </div>
             </div>
             <div className="w-px bg-slate-100 dark:bg-slate-900"></div>
             <div className="text-center">
@@ -452,6 +492,48 @@ export default function HRRecruitment({ triggerToast }) {
           </div>
 
           <div>
+            <label className="text-[10px] font-extrabold text-slate-450 block uppercase mb-1">Resume (PDF format only)</label>
+            <div className="border border-dashed border-slate-200 dark:border-slate-800 rounded-xl p-3.5 bg-slate-50/50 dark:bg-slate-900/50 hover:bg-slate-100/50 transition relative overflow-hidden flex flex-col items-center justify-center min-h-[90px]">
+              {candidateForm.resume ? (
+                <div className="flex flex-col items-center justify-center gap-1.5 w-full">
+                  <FileText className="w-6 h-6 text-indigo-500" />
+                  <div className="text-[10px] font-bold text-slate-700 dark:text-slate-350 truncate max-w-[240px]">
+                    {candidateForm.resume.name}
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={() => setCandidateForm(prev => ({ ...prev, resume: null }))}
+                    className="text-[9px] font-bold text-rose-500 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-950 px-2 py-0.5 rounded-lg transition"
+                  >
+                    Remove File
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <Plus className="w-5 h-5 text-slate-400 mb-1" />
+                  <div className="text-slate-550 dark:text-slate-400 text-[10px] font-bold">Click to select or drag PDF file here</div>
+                  <input 
+                    type="file" 
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        if (file.type !== "application/pdf") {
+                          triggerToast("Please upload a PDF file only!", "error");
+                          return;
+                        }
+                        setCandidateForm(prev => ({ ...prev, resume: file }));
+                        triggerToast(`Resume "${file.name}" selected!`);
+                      }
+                    }}
+                    className="absolute inset-0 opacity-0 cursor-pointer" 
+                    accept="application/pdf"
+                  />
+                </>
+              )}
+            </div>
+          </div>
+
+          <div>
             <label className="text-[10px] font-extrabold text-slate-450 block uppercase mb-1">Initial Candidate Notes</label>
             <textarea 
               rows="3"
@@ -517,6 +599,33 @@ export default function HRRecruitment({ triggerToast }) {
                   <div className="p-4 bg-slate-50/50 dark:bg-slate-900/30 rounded-2xl border border-slate-100 dark:border-slate-850 min-h-[100px] font-medium leading-relaxed">
                     {selectedCandidate.notes || "No candidate notes registered yet."}
                   </div>
+                </div>
+
+                <div>
+                  <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">Candidate Resume</label>
+                  {selectedCandidate.resume ? (
+                    <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-150 dark:border-slate-800 rounded-2xl">
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <FileText className="w-4 h-4 text-indigo-500 shrink-0" />
+                        <span className="font-bold truncate text-[10.5px] text-slate-700 dark:text-slate-350">
+                          {selectedCandidate.name}_Resume.pdf
+                        </span>
+                      </div>
+                      <a 
+                        href={selectedCandidate.resume} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="px-3.5 py-2 bg-indigo-650 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-xl flex items-center gap-1 transition shadow-sm"
+                      >
+                        <ArrowRight className="w-3.5 h-3.5" />
+                        View PDF
+                      </a>
+                    </div>
+                  ) : (
+                    <div className="p-4 text-center text-slate-400 dark:text-slate-500 text-[10px] font-semibold italic border border-dashed border-slate-150 dark:border-slate-800 rounded-2xl">
+                      No resume uploaded for this candidate.
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-4 pt-2">

@@ -37,7 +37,8 @@ export default function HRDepartments({
     desc: '',
     leader: '',
     budget: '',
-    efficiency: 95
+    efficiency: 95,
+    hiringStatus: ''
   });
 
   // Assign modal state
@@ -321,6 +322,9 @@ export default function HRDepartments({
                   <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 rounded-lg border border-emerald-100/40">
                     {selectedDept.efficiency || 95}% Efficiency
                   </span>
+                  <span className="text-[10px] font-bold text-amber-600 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-0.5 rounded-lg border border-amber-100/40">
+                    {selectedDept.hiringStatus || 'Active hiring'}
+                  </span>
                 </div>
                 <h3 className="text-lg font-extrabold text-slate-900 dark:text-white leading-relaxed">
                   {selectedDept.name}
@@ -403,6 +407,16 @@ export default function HRDepartments({
                     value={editForm.efficiency}
                     onChange={e => setEditForm({ ...editForm, efficiency: Number(e.target.value) })}
                     className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 block mb-1">HIRING STATUS (e.g., "3 Openings", "Compliant")</label>
+                  <input
+                    type="text"
+                    value={editForm.hiringStatus}
+                    onChange={e => setEditForm({ ...editForm, hiringStatus: e.target.value })}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-white"
+                    placeholder="e.g. 2 Openings"
                   />
                 </div>
                 <div className="pt-4 flex justify-end gap-3">
@@ -532,7 +546,8 @@ export default function HRDepartments({
                         desc: selectedDept.desc || '',
                         leader: selectedDept.leader || '',
                         budget: selectedDept.budget || '',
-                        efficiency: selectedDept.efficiency || 95
+                        efficiency: selectedDept.efficiency || 95,
+                        hiringStatus: selectedDept.hiringStatus || 'Active hiring'
                       });
                       setIsEditing(true);
                     }}

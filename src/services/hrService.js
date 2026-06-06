@@ -72,7 +72,17 @@ export const hrService = {
 
     const activeToday = totalEmployees - onLeaveToday;
     const pendingLeaves = allLeaves.filter(req => req.status === "Pending").length;
-    const openPositions = 8;
+    
+    let openPositions = 8;
+    try {
+      const resMetrics = await authenticatedFetch(`${API_BASE_URL}/candidates/metrics`);
+      const dataMetrics = await resMetrics.json();
+      if (resMetrics.ok && dataMetrics.data && dataMetrics.data.openPositions !== undefined) {
+        openPositions = dataMetrics.data.openPositions;
+      }
+    } catch (e) {
+      console.error("Failed to compute dynamic open positions:", e);
+    }
 
     let payrollSum = 0;
     employees.forEach(emp => {
@@ -344,6 +354,7 @@ export const hrService = {
       return {
         candidates: dataCandidates.data?.candidates || [],
         metrics: dataMetrics.data || {
+          openPositions: 0,
           totalCandidates: 0,
           activeCandidates: 0,
           avgTimeToHire: 18,
@@ -356,6 +367,7 @@ export const hrService = {
       return {
         candidates: [],
         metrics: {
+          openPositions: 0,
           totalCandidates: 0,
           activeCandidates: 0,
           avgTimeToHire: 18,
@@ -363,6 +375,24 @@ export const hrService = {
         },
         interviews: initialInterviews
       };
+    }
+  },
+
+  updateOpenPositions: async (count) => {
+    try {
+      const res = await authenticatedFetch(`${API_BASE_URL}/candidates/metrics`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ openPositions: count }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to update open positions");
+      }
+      return data.data;
+    } catch (err) {
+      console.error("Failed to update open positions:", err);
+      throw err;
     }
   },
 
@@ -388,10 +418,27 @@ export const hrService = {
 
   addCandidate: async (candidate) => {
     try {
+      let body;
+      const hasFiles = Object.values(candidate).some(val => val instanceof File || val instanceof Blob);
+      
+      let headers = {};
+      if (hasFiles) {
+        const formData = new FormData();
+        Object.keys(candidate).forEach(key => {
+          if (candidate[key] !== undefined && candidate[key] !== null) {
+            formData.append(key, candidate[key]);
+          }
+        });
+        body = formData;
+      } else {
+        headers["Content-Type"] = "application/json";
+        body = JSON.stringify(candidate);
+      }
+
       const res = await authenticatedFetch(`${API_BASE_URL}/candidates`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(candidate),
+        headers,
+        body,
       });
       const data = await res.json();
       if (!res.ok) {
