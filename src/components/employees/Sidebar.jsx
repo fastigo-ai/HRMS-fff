@@ -31,6 +31,7 @@ export default function Sidebar({
     { id: 'tasks', label: 'Tasks', icon: CheckSquare },
     { id: 'notifications', label: 'Notifications', icon: Bell, badgeCount: unreadNotificationsCount },
     { id: 'settings', label: 'Settings', icon: SettingsIcon },
+    { id: 'company-details', label: 'Company Settings', icon: SettingsIcon },
   ];
 
   return (

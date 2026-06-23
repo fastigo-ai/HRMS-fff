@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Clock,
   Download,
@@ -28,7 +29,15 @@ export default function Attendance({
   stats = {},
   isReadOnly = false,
 }) {
-  const [selectedLogsMonth, setSelectedLogsMonth] = useState("May 2026");
+  const navigate = useNavigate();
+  const location = useLocation();
+  const basePath = location.pathname.split('/')[1] || 'employee';
+
+  const getCurrentMonthString = () => {
+    const d = new Date();
+    return d.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+  };
+  const [selectedLogsMonth, setSelectedLogsMonth] = useState(getCurrentMonthString());
   const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState(false);
   const [selectedLogDetail, setSelectedLogDetail] = useState(null);
   const [activeTabSub, setActiveTabSub] = useState("clocking"); // 'clocking' | 'overtime' | 'regularize'
@@ -58,17 +67,33 @@ export default function Attendance({
     return `${year}-${month}-${day}`;
   };
 
-  // Generate calendar days dynamically for May 2026
+  // Generate calendar days dynamically for selectedLogsMonth
   const getCalendarDays = () => {
+    const [monthName, yearStr] = selectedLogsMonth.split(' ');
+    const year = parseInt(yearStr, 10);
+    const monthIndex = new Date(`${monthName} 1, ${year}`).getMonth();
+    
     const days = [];
-    // April 2026 padding (starts Friday, Mon-Thu are previous month)
-    for (let d = 27; d <= 30; d++) {
-      days.push({ day: d, currentMonth: false });
+    
+    // First day of the month
+    const firstDay = new Date(year, monthIndex, 1);
+    const startingDayOfWeek = firstDay.getDay(); // 0 is Sunday
+    
+    // Last day of previous month
+    const prevMonthLastDate = new Date(year, monthIndex, 0).getDate();
+    
+    // Padding from previous month
+    for (let i = startingDayOfWeek - 1; i >= 0; i--) {
+      days.push({ day: prevMonthLastDate - i, currentMonth: false });
     }
-    // May 2026 days
-    for (let d = 1; d <= 31; d++) {
+    
+    // Days in current month
+    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+    const monthStr = String(monthIndex + 1).padStart(2, "0");
+    
+    for (let d = 1; d <= daysInMonth; d++) {
       const dayStr = String(d).padStart(2, "0");
-      const fullDateStr = `2026-05-${dayStr}`;
+      const fullDateStr = `${year}-${monthStr}-${dayStr}`;
       const log = logs.find((l) => l.date === fullDateStr);
 
       let type = undefined;
@@ -100,6 +125,11 @@ export default function Attendance({
     return `${logMonth} ${logYear}` === selectedLogsMonth;
   });
 
+  const handleApplyWFH = () => {
+    if (setCurrentTab) setCurrentTab("wfh-request");
+    navigate(`/${basePath}/wfh-request`);
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header Area matching Screenshot 1 */}
@@ -109,7 +139,7 @@ export default function Attendance({
             Attendance Overview
           </h2>
           <p className="text-xs text-slate-400 dark:text-slate-500">
-            Tracking your productivity for May 2026
+            Tracking your productivity for {selectedLogsMonth}
           </p>
         </div>
 
@@ -294,16 +324,24 @@ export default function Attendance({
 
                 <div className="flex items-center border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm shrink-0">
                   <button
-                    onClick={() => triggerToast("Rollback calendar month")}
+                    onClick={() => {
+                      const d = new Date(`${selectedLogsMonth} 1`);
+                      d.setMonth(d.getMonth() - 1);
+                      setSelectedLogsMonth(d.toLocaleString('en-US', { month: 'long', year: 'numeric' }));
+                    }}
                     className="p-1.5 text-slate-500 hover:bg-slate-55 hover:bg-slate-100 dark:hover:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
                   <span className="px-3 text-xs font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-950">
-                    May 2026
+                    {selectedLogsMonth}
                   </span>
                   <button
-                    onClick={() => triggerToast("Advance calendar month")}
+                    onClick={() => {
+                      const d = new Date(`${selectedLogsMonth} 1`);
+                      d.setMonth(d.getMonth() + 1);
+                      setSelectedLogsMonth(d.toLocaleString('en-US', { month: 'long', year: 'numeric' }));
+                    }}
                     className="p-1.5 text-slate-500 hover:bg-slate-55 hover:bg-slate-100 dark:hover:bg-slate-900 border-l border-slate-200 dark:border-slate-800 transition"
                   >
                     <ChevronRight className="w-4 h-4" />
@@ -388,7 +426,7 @@ export default function Attendance({
                       instantly.
                     </p>
                     <button
-                      onClick={() => setCurrentTab && setCurrentTab("wfh-request")}
+                      onClick={handleApplyWFH}
                       className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-xl transition shadow shadow-indigo-600/10"
                     >
                       Apply WFH Request
@@ -438,24 +476,32 @@ export default function Attendance({
 
                 {isMonthDropdownOpen && (
                   <div className="absolute right-0 mt-1.5 w-40 bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-xl shadow-lg py-1.5 z-30 animate-scale-up">
-                    {["May 2026", "April 2026", "March 2026"].map((m) => (
-                      <button
-                        key={m}
-                        type="button"
-                        onClick={() => {
-                          setSelectedLogsMonth(m);
-                          setIsMonthDropdownOpen(false);
-                          triggerToast(`Switched log view to ${m}`);
-                        }}
-                        className={`w-full px-4 py-2 text-left text-xs transition-colors ${
-                          selectedLogsMonth === m
-                            ? "bg-slate-50 dark:bg-slate-900 text-indigo-650 dark:text-indigo-400 font-extrabold"
-                            : "text-slate-655 hover:bg-slate-50/50 dark:text-slate-400 dark:hover:bg-slate-900/50"
-                        }`}
-                      >
-                        {m}
-                      </button>
-                    ))}
+                    {(() => {
+                      const months = [];
+                      for (let i = 0; i < 4; i++) {
+                        const d = new Date();
+                        d.setMonth(d.getMonth() - i);
+                        months.push(d.toLocaleString('en-US', { month: 'long', year: 'numeric' }));
+                      }
+                      return months.map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => {
+                            setSelectedLogsMonth(m);
+                            setIsMonthDropdownOpen(false);
+                            triggerToast(`Switched log view to ${m}`);
+                          }}
+                          className={`w-full px-4 py-2 text-left text-xs transition-colors ${
+                            selectedLogsMonth === m
+                              ? "bg-slate-50 dark:bg-slate-900 text-indigo-650 dark:text-indigo-400 font-extrabold"
+                              : "text-slate-655 hover:bg-slate-50/50 dark:text-slate-400 dark:hover:bg-slate-900/50"
+                          }`}
+                        >
+                          {m}
+                        </button>
+                      ));
+                    })()}
                   </div>
                 )}
               </div>

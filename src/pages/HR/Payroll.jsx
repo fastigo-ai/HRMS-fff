@@ -16,6 +16,7 @@ import {
 import DataTable from '../../shared/ui/DataTable';
 import StatusBadge from '../../shared/ui/StatusBadge';
 import PageHeader from '../../shared/components/PageHeader';
+import AttendanceCalendar from '../../components/HR/AttendanceCalendar';
 import { DatabaseService } from '../../services/api';
 
 // Number-to-words helper
@@ -73,11 +74,36 @@ export default function Payroll({ triggerToast, hrEmployees = [] }) {
   const [companyCountry, setCompanyCountry] = useState('India');
   const [logoPreview, setLogoPreview] = useState(null);
 
+  // Generate pay period options dynamically (current month + past 5 months)
+  const payPeriodOptions = (() => {
+    const options = [];
+    const now = new Date();
+    const months = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const periodStr = `${months[d.getMonth()]} ${d.getFullYear()}`;
+      options.push(periodStr);
+    }
+    return options;
+  })();
+
   const [selectedEmpId, setSelectedEmpId] = useState('');
-  const [payPeriod, setPayPeriod] = useState('May 2026');
+  const [payPeriod, setPayPeriod] = useState(payPeriodOptions[0] || 'June 2026');
   const [paidDays, setPaidDays] = useState(30);
   const [lopDays, setLopDays] = useState(0);
-  const [payDate, setPayDate] = useState('2026-05-01');
+  
+  // Default payDate to today's date formatted as YYYY-MM-DD
+  const [payDate, setPayDate] = useState(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  });
+  
   const [customFields, setCustomFields] = useState([]);
 
   const [basicSalary, setBasicSalary] = useState(0);
@@ -87,7 +113,89 @@ export default function Payroll({ triggerToast, hrEmployees = [] }) {
   const [customDeductions, setCustomDeductions] = useState([]);
   const [providentFund, setProvidentFund] = useState(0);
 
-  // Load all corporate disbursements on mount
+  // Attendance Metrics State
+  const [attendanceLogs, setAttendanceLogs] = useState([]);
+  const [workingDays, setWorkingDays] = useState(30);
+  const [presentDays, setPresentDays] = useState(30);
+  const [absentDays, setAbsentDays] = useState(0);
+  const [isBeforeJoining, setIsBeforeJoining] = useState(false);
+  const [currentEmployeeLogs, setCurrentEmployeeLogs] = useState([]);
+
+  // Parse Month Period string (e.g. "May 2026") into year and month
+  const parsePayPeriod = (periodStr) => {
+    const parts = periodStr.split(' ');
+    if (parts.length === 2) {
+      const monthName = parts[0];
+      const year = parseInt(parts[1], 10);
+      const months = {
+        January: 1, February: 2, March: 3, April: 4, May: 5, June: 6,
+        July: 7, August: 8, September: 9, October: 10, November: 11, December: 12
+      };
+      const month = months[monthName];
+      if (month && year) {
+        return { year, month };
+      }
+    }
+    return null;
+  };
+
+  const [companySettings, setCompanySettings] = useState(null);
+
+  const isWorkingDay = (date, saturdayRule = '5-day') => {
+    const dayOfWeek = date.getDay(); // 0 = Sun, 6 = Sat
+    if (dayOfWeek === 0) return false; // Sunday is always off
+    if (dayOfWeek === 6) { // Saturday
+      if (saturdayRule === '5-day') return false;
+      if (saturdayRule === '6-day') return true;
+      if (saturdayRule === '2nd-4th-off') {
+        const day = date.getDate();
+        const isSecondSaturday = day >= 8 && day <= 14;
+        const isFourthSaturday = day >= 22 && day <= 28;
+        return !(isSecondSaturday || isFourthSaturday);
+      }
+    }
+    return true; // Mon-Fri
+  };
+
+  // Calculate required working days in a month
+  const getWorkingDaysInMonth = (year, month, saturdayRule = '5-day') => {
+    const numDays = new Date(year, month, 0).getDate();
+    let workingDays = 0;
+    for (let day = 1; day <= numDays; day++) {
+      const date = new Date(year, month - 1, day);
+      if (isWorkingDay(date, saturdayRule)) {
+        workingDays++;
+      }
+    }
+    return workingDays;
+  };
+
+  // Calculate working days starting from a specific day of the month
+  const getWorkingDaysFromDateInMonth = (year, month, fromDay, saturdayRule = '5-day') => {
+    const numDays = new Date(year, month, 0).getDate();
+    let workingDays = 0;
+    for (let day = fromDay; day <= numDays; day++) {
+      const date = new Date(year, month - 1, day);
+      if (isWorkingDay(date, saturdayRule)) {
+        workingDays++;
+      }
+    }
+    return workingDays;
+  };
+
+  // Safe base salary fetch with position/role fallbacks
+  const getBaseSalary = (emp) => {
+    if (!emp) return 0;
+    const salaryVal = parseFloat(emp.joiningSalary);
+    if (!isNaN(salaryVal) && salaryVal > 0) {
+      return salaryVal;
+    }
+    if (emp.role === 'hr_admin') return 95000;
+    if (emp.role === 'manager') return 120000;
+    return 85000;
+  };
+
+  // Load all corporate disbursements, attendance and company details on mount
   useEffect(() => {
     fetchLedger();
   }, []);
@@ -96,13 +204,248 @@ export default function Payroll({ triggerToast, hrEmployees = [] }) {
     try {
       const data = await DatabaseService.getHRPayrollAll();
       setLedgerPayslips(data || []);
+      const logs = await DatabaseService.getHRAttendanceLogsAll();
+      setAttendanceLogs(logs || []);
+      const comp = await DatabaseService.getCompanyDetails();
+      setCompanySettings(comp);
     } catch (err) {
-      console.error('Failed to load payroll ledger:', err);
+      console.error('Failed to load payroll ledger, attendance or company settings:', err);
     }
   };
 
   // Find matching employee details
   const currentEmp = hrEmployees.find(e => e.id === selectedEmpId);
+
+  // Auto-populate when Employee or Pay Period changes
+  useEffect(() => {
+    if (!selectedEmpId) {
+      setWorkingDays(30);
+      setPresentDays(30);
+      setAbsentDays(0);
+      setPaidDays(30);
+      setLopDays(0);
+      setBasicSalary(0);
+      setHraAllowance(0);
+      setIncomeTax(0);
+      setProvidentFund(0);
+      setIsBeforeJoining(false);
+      return;
+    }
+
+    const emp = hrEmployees.find(e => e.id === selectedEmpId);
+    if (!emp) return;
+
+    // Resolve employee join date properties
+    const joinDateObj = emp.joinDate ? new Date(emp.joinDate) : new Date();
+    const joinYear = joinDateObj.getFullYear();
+    const joinMonth = joinDateObj.getMonth() + 1; // 1-based
+    const joinDay = joinDateObj.getDate();
+
+    const parsed = parsePayPeriod(payPeriod);
+    if (parsed) {
+      const { year, month } = parsed;
+      
+      // Check if the selected month is before the employee's joining month
+      const beforeJoining = (year < joinYear || (year === joinYear && month < joinMonth));
+      const isJoiningMonth = (year === joinYear && month === joinMonth);
+
+      setIsBeforeJoining(beforeJoining);
+
+      if (beforeJoining) {
+        setWorkingDays(0);
+        setPresentDays(0);
+        setAbsentDays(0);
+        setPaidDays(0);
+        setLopDays(0);
+        setBasicSalary(0);
+        setHraAllowance(0);
+        setIncomeTax(0);
+        setProvidentFund(0);
+        return;
+      }
+
+      const saturdayRule = companySettings?.saturdayRule || '5-day';
+      const fullMonthWorkingDays = getWorkingDaysInMonth(year, month, saturdayRule);
+      let calculatedWorkingDays = fullMonthWorkingDays;
+
+      if (isJoiningMonth) {
+        // Only count working days from the day they joined
+        calculatedWorkingDays = getWorkingDaysFromDateInMonth(year, month, joinDay, saturdayRule);
+      }
+
+      // Filter raw logs for selected employee & period
+      const employeeLogs = attendanceLogs.filter(log => {
+        const empId = log.employee?._id || log.employee?.id || log.employee;
+        if (empId !== selectedEmpId) return false;
+        
+        if (!log.date) return false;
+        const parts = log.date.split('-');
+        if (parts.length !== 3) return false;
+        const logYear = parseInt(parts[0], 10);
+        const logMonth = parseInt(parts[1], 10);
+        const logDay = parseInt(parts[2], 10);
+        
+        if (logYear !== year || logMonth !== month) return false;
+
+        // In joining month, ignore logs prior to joining date
+        if (isJoiningMonth && logDay < joinDay) return false;
+        
+        return true;
+      });
+
+      setCurrentEmployeeLogs(employeeLogs);
+
+      let calculatedPresentDays = 0;
+      let calculatedAbsentDays = 0;
+
+      const now = new Date();
+      const isCurrentMonth = (year === now.getFullYear() && month === now.getMonth() + 1);
+
+      if (isCurrentMonth) {
+        const startDay = isJoiningMonth ? joinDay : 1;
+        const limitDay = Math.min(now.getDate(), new Date(year, month, 0).getDate());
+
+        let weekdaysUpToToday = 0;
+        for (let d = startDay; d <= limitDay; d++) {
+          const date = new Date(year, month - 1, d);
+          if (isWorkingDay(date, saturdayRule)) {
+            weekdaysUpToToday++;
+          }
+        }
+
+        calculatedWorkingDays = weekdaysUpToToday;
+
+        if (employeeLogs.length > 0 || isJoiningMonth) {
+          const actualPresent = employeeLogs.filter(log => log.status === 'Present' || log.status === 'Late').length;
+          calculatedPresentDays = actualPresent;
+          calculatedAbsentDays = Math.max(0, calculatedWorkingDays - actualPresent);
+        } else {
+          // No logs, assume present for the days passed
+          calculatedPresentDays = calculatedWorkingDays;
+          calculatedAbsentDays = 0;
+        }
+      } else {
+        if (employeeLogs.length > 0 || isJoiningMonth) {
+          calculatedPresentDays = employeeLogs.filter(log => log.status === 'Present' || log.status === 'Late').length;
+          calculatedAbsentDays = Math.max(0, calculatedWorkingDays - calculatedPresentDays);
+        } else {
+          calculatedPresentDays = calculatedWorkingDays;
+          calculatedAbsentDays = 0;
+        }
+      }
+
+      setWorkingDays(calculatedWorkingDays);
+      setPresentDays(calculatedPresentDays);
+      setAbsentDays(calculatedAbsentDays);
+
+      setPaidDays(calculatedPresentDays);
+      setLopDays(calculatedAbsentDays);
+
+      const baseSalary = getBaseSalary(emp);
+      let baseBasic = baseSalary * 0.7;
+      let baseHra = baseSalary * 0.3;
+      let basePf = baseBasic * 0.12;
+
+      if (emp.salaryBreakup && emp.salaryBreakup.basic) {
+        baseBasic = Number(emp.salaryBreakup.basic) || 0;
+        baseHra = Number(emp.salaryBreakup.hra) || 0;
+        basePf = Number(emp.salaryBreakup.pf) || 0;
+      }
+
+      const prorationFactor = calculatedPresentDays / fullMonthWorkingDays;
+
+      const calculatedBasic = Math.round(baseBasic * prorationFactor);
+      const calculatedHra = Math.round(baseHra * prorationFactor);
+      const calculatedPf = Math.round(basePf * prorationFactor);
+      const annualBaseSalary = baseSalary > 0 ? baseSalary * 12 : (baseBasic + baseHra) * 12;
+      const calculatedTax = annualBaseSalary > 1270000 ? Math.round((calculatedBasic + calculatedHra) * 0.15) : 0;
+
+      setBasicSalary(calculatedBasic);
+      setHraAllowance(calculatedHra);
+      setProvidentFund(calculatedPf);
+      setIncomeTax(calculatedTax);
+    }
+  }, [selectedEmpId, payPeriod, attendanceLogs, hrEmployees, companySettings]);
+
+  // Handle manual input updates for Paid Days & recalculate salary
+  const handlePaidDaysChange = (val) => {
+    setPaidDays(val);
+    const calculatedLop = Math.max(0, workingDays - val);
+    setLopDays(calculatedLop);
+    
+    const saturdayRule = companySettings?.saturdayRule || '5-day';
+    const fullMonthWorkingDays = getWorkingDaysInMonth(
+      parsePayPeriod(payPeriod)?.year || 2026,
+      parsePayPeriod(payPeriod)?.month || 5,
+      saturdayRule
+    ) || 30;
+
+    if (currentEmp && fullMonthWorkingDays > 0) {
+      const baseSalary = getBaseSalary(currentEmp);
+      let baseBasic = baseSalary * 0.7;
+      let baseHra = baseSalary * 0.3;
+      let basePf = baseBasic * 0.12;
+
+      if (currentEmp.salaryBreakup && currentEmp.salaryBreakup.basic) {
+        baseBasic = Number(currentEmp.salaryBreakup.basic) || 0;
+        baseHra = Number(currentEmp.salaryBreakup.hra) || 0;
+        basePf = Number(currentEmp.salaryBreakup.pf) || 0;
+      }
+
+      const prorationFactor = val / fullMonthWorkingDays;
+
+      const calculatedBasic = Math.round(baseBasic * prorationFactor);
+      const calculatedHra = Math.round(baseHra * prorationFactor);
+      const calculatedPf = Math.round(basePf * prorationFactor);
+      const annualBaseSalary = baseSalary > 0 ? baseSalary * 12 : (baseBasic + baseHra) * 12;
+      const calculatedTax = annualBaseSalary > 1270000 ? Math.round((calculatedBasic + calculatedHra) * 0.15) : 0;
+
+      setBasicSalary(calculatedBasic);
+      setHraAllowance(calculatedHra);
+      setProvidentFund(calculatedPf);
+      setIncomeTax(calculatedTax);
+    }
+  };
+
+  // Handle manual input updates for Loss of Pay Days & recalculate salary
+  const handleLopDaysChange = (val) => {
+    setLopDays(val);
+    const calculatedPaidDays = Math.max(0, workingDays - val);
+    setPaidDays(calculatedPaidDays);
+    
+    const saturdayRule = companySettings?.saturdayRule || '5-day';
+    const fullMonthWorkingDays = getWorkingDaysInMonth(
+      parsePayPeriod(payPeriod)?.year || 2026,
+      parsePayPeriod(payPeriod)?.month || 5,
+      saturdayRule
+    ) || 30;
+
+    if (currentEmp && fullMonthWorkingDays > 0) {
+      const baseSalary = getBaseSalary(currentEmp);
+      let baseBasic = baseSalary * 0.7;
+      let baseHra = baseSalary * 0.3;
+      let basePf = baseBasic * 0.12;
+
+      if (currentEmp.salaryBreakup && currentEmp.salaryBreakup.basic) {
+        baseBasic = Number(currentEmp.salaryBreakup.basic) || 0;
+        baseHra = Number(currentEmp.salaryBreakup.hra) || 0;
+        basePf = Number(currentEmp.salaryBreakup.pf) || 0;
+      }
+
+      const prorationFactor = calculatedPaidDays / fullMonthWorkingDays;
+
+      const calculatedBasic = Math.round(baseBasic * prorationFactor);
+      const calculatedHra = Math.round(baseHra * prorationFactor);
+      const calculatedPf = Math.round(basePf * prorationFactor);
+      const annualBaseSalary = baseSalary > 0 ? baseSalary * 12 : (baseBasic + baseHra) * 12;
+      const calculatedTax = annualBaseSalary > 1270000 ? Math.round((calculatedBasic + calculatedHra) * 0.15) : 0;
+
+      setBasicSalary(calculatedBasic);
+      setHraAllowance(calculatedHra);
+      setProvidentFund(calculatedPf);
+      setIncomeTax(calculatedTax);
+    }
+  };
 
   // Dynamic aggregates
   const grossEarnings = Number(basicSalary) + Number(hraAllowance) + 
@@ -142,10 +485,20 @@ export default function Payroll({ triggerToast, hrEmployees = [] }) {
 
   const handleReset = () => {
     setSelectedEmpId('');
-    setPayPeriod('May 2026');
+    setPayPeriod(payPeriodOptions[0] || 'June 2026');
     setPaidDays(30);
     setLopDays(0);
-    setPayDate('2026-05-01');
+    setWorkingDays(30);
+    setPresentDays(30);
+    setAbsentDays(0);
+    setIsBeforeJoining(false);
+    
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    setPayDate(`${year}-${month}-${day}`);
+    
     setCustomFields([]);
     setBasicSalary(0);
     setHraAllowance(0);
@@ -186,7 +539,13 @@ export default function Payroll({ triggerToast, hrEmployees = [] }) {
         employeeName: currentEmp.name,
         period: payPeriod,
         baseSalary: grossEarnings,
-        taxWithheld: Number(incomeTax)
+        taxWithheld: totalDeductions, // pass totalDeductions so saved netPay aligns with netPayable
+        basic: basicSalary,
+        hra: hraAllowance,
+        providentFund: providentFund,
+        incomeTax: incomeTax,
+        customEarnings: customEarnings,
+        customDeductions: customDeductions
       };
       
       const newSlip = await DatabaseService.disbursePayslip(payload);
@@ -406,12 +765,11 @@ export default function Payroll({ triggerToast, hrEmployees = [] }) {
                   <select 
                     value={payPeriod}
                     onChange={(e) => setPayPeriod(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-800 dark:text-white"
+                    className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-800 dark:text-white cursor-pointer font-medium"
                   >
-                    <option value="May 2026">May 2026</option>
-                    <option value="April 2026">April 2026</option>
-                    <option value="March 2026">March 2026</option>
-                    <option value="February 2026">February 2026</option>
+                    {payPeriodOptions.map(opt => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -419,7 +777,7 @@ export default function Payroll({ triggerToast, hrEmployees = [] }) {
                   <input 
                     type="number" 
                     value={paidDays}
-                    onChange={(e) => setPaidDays(Number(e.target.value))}
+                    onChange={(e) => handlePaidDaysChange(Number(e.target.value))}
                     className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800 dark:text-white"
                   />
                 </div>
@@ -445,7 +803,7 @@ export default function Payroll({ triggerToast, hrEmployees = [] }) {
                   <input 
                     type="number" 
                     value={lopDays}
-                    onChange={(e) => setLopDays(Number(e.target.value))}
+                    onChange={(e) => handleLopDaysChange(Number(e.target.value))}
                     className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-850 rounded-lg text-slate-800 dark:text-white"
                   />
                 </div>
@@ -462,6 +820,42 @@ export default function Payroll({ triggerToast, hrEmployees = [] }) {
             </div>
 
           </div>
+
+          {/* Calculated Attendance Metrics Dashboard */}
+          {selectedEmpId && (
+            isBeforeJoining ? (
+              <div className="p-4 bg-amber-50/50 dark:bg-amber-950/10 border border-amber-200/40 dark:border-amber-900/20 rounded-2xl flex items-center justify-center text-center">
+                <span className="text-xs font-bold text-amber-700 dark:text-amber-450">
+                  ⚠️ Pay Period is before Employee's Joining Month (Joined: {currentEmp?.joinDate ? new Date(currentEmp.joinDate).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'})
+                </span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-4 p-4 bg-indigo-50/40 dark:bg-indigo-950/10 border border-indigo-150/50 dark:border-indigo-900/30 rounded-2xl">
+                <div className="text-center">
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 block uppercase tracking-wider">Total Working Days</span>
+                  <span className="text-lg font-black text-slate-800 dark:text-white mt-1 block">{workingDays}</span>
+                </div>
+                <div className="text-center border-x border-slate-200/60 dark:border-slate-800/60 font-semibold">
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 block uppercase tracking-wider">Days Present</span>
+                  <span className="text-lg font-black text-emerald-600 dark:text-emerald-400 mt-1 block">{presentDays}</span>
+                </div>
+                <div className="text-center font-semibold">
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 block uppercase tracking-wider">Days Absent</span>
+                  <span className="text-lg font-black text-rose-600 dark:text-rose-400 mt-1 block">{absentDays}</span>
+                </div>
+              </div>
+            )
+          )}
+
+          {selectedEmpId && !isBeforeJoining && parsePayPeriod(payPeriod) && (
+            <AttendanceCalendar 
+              year={parsePayPeriod(payPeriod).year}
+              month={parsePayPeriod(payPeriod).month}
+              employeeLogs={currentEmployeeLogs}
+              joinDate={currentEmp?.joinDate}
+              saturdayRule={companySettings?.saturdayRule}
+            />
+          )}
 
           {/* Interactive custom pay fields */}
           <div className="space-y-2.5">
@@ -842,24 +1236,43 @@ export default function Payroll({ triggerToast, hrEmployees = [] }) {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-700">
-                    <tr>
-                      <td className="p-2.5 font-medium text-slate-600">Basic Salary (70%)</td>
-                      <td className="p-2.5 text-right font-bold text-slate-800 border-r border-slate-200">₹{Math.round(selectedSlip.baseSalary * 0.7).toLocaleString('en-IN')}</td>
-                      <td className="p-2.5 font-medium text-slate-600">Income Tax (Withheld 15%)</td>
-                      <td className="p-2.5 text-right font-bold text-rose-600">₹{selectedSlip.taxWithheld.toLocaleString('en-IN')}</td>
-                    </tr>
-                    <tr>
-                      <td className="p-2.5 font-medium text-slate-600">House Rent Allowance (HRA 30%)</td>
-                      <td className="p-2.5 text-right font-bold text-slate-800 border-r border-slate-200">₹{(selectedSlip.baseSalary - Math.round(selectedSlip.baseSalary * 0.7)).toLocaleString('en-IN')}</td>
-                      <td className="p-2.5 font-medium text-slate-600">Provident Fund (PF)</td>
-                      <td className="p-2.5 text-right font-bold text-slate-800">₹{providentFund.toLocaleString('en-IN')}</td>
-                    </tr>
-                    <tr className="bg-slate-50 border-t border-slate-200 font-bold text-slate-800">
-                      <td className="p-2.5">Gross Total Earnings</td>
-                      <td className="p-2.5 text-right border-r border-slate-200">₹{selectedSlip.baseSalary.toLocaleString('en-IN')}</td>
-                      <td className="p-2.5">Total Deductions Outflow</td>
-                      <td className="p-2.5 text-right text-rose-600">₹{selectedSlip.taxWithheld.toLocaleString('en-IN')}</td>
-                    </tr>
+                    {(() => {
+                      const slipBasic = Math.round(selectedSlip.baseSalary * 0.7);
+                      const slipHra = selectedSlip.baseSalary - slipBasic;
+                      const slipPF = Math.round(slipBasic * 0.12);
+                      const slipTax = Math.max(0, selectedSlip.taxWithheld - slipPF);
+                      return (
+                        <>
+                          <tr>
+                            <td className="p-2.5 font-medium text-slate-600">Basic Salary (70%)</td>
+                            <td className="p-2.5 text-right font-bold text-slate-800 border-r border-slate-200">₹{slipBasic.toLocaleString('en-IN')}</td>
+                            <td className="p-2.5 font-medium text-slate-600">Income Tax (Withheld 15%)</td>
+                            <td className="p-2.5 text-right font-bold text-rose-600">₹{slipTax.toLocaleString('en-IN')}</td>
+                          </tr>
+                          <tr>
+                            <td className="p-2.5 font-medium text-slate-600">House Rent Allowance (HRA 30%)</td>
+                            <td className="p-2.5 text-right font-bold text-slate-800 border-r border-slate-200">₹{slipHra.toLocaleString('en-IN')}</td>
+                            <td className="p-2.5 font-medium text-slate-600">Provident Fund (PF)</td>
+                            <td className="p-2.5 text-right font-bold text-slate-800">₹{slipPF.toLocaleString('en-IN')}</td>
+                          </tr>
+                          {selectedSlip.deductionAmount > 0 && (
+                            <tr>
+                              <td className="p-2.5 font-medium text-slate-400 border-r border-slate-200" colSpan="2">
+                                <span className="text-[10px] uppercase font-bold text-slate-450">Adjustment:</span> Leave-based Deductions applied
+                              </td>
+                              <td className="p-2.5 font-semibold text-rose-500">Unpaid Leaves ({selectedSlip.extraLeaves} day(s))</td>
+                              <td className="p-2.5 text-right font-bold text-rose-600">₹{selectedSlip.deductionAmount.toLocaleString('en-IN')}</td>
+                            </tr>
+                          )}
+                          <tr className="bg-slate-50 border-t border-slate-200 font-bold text-slate-800">
+                            <td className="p-2.5">Gross Total Earnings</td>
+                            <td className="p-2.5 text-right border-r border-slate-200">₹{selectedSlip.baseSalary.toLocaleString('en-IN')}</td>
+                            <td className="p-2.5">Total Deductions Outflow</td>
+                            <td className="p-2.5 text-right text-rose-600">₹{(selectedSlip.taxWithheld + (selectedSlip.deductionAmount || 0)).toLocaleString('en-IN')}</td>
+                          </tr>
+                        </>
+                      );
+                    })()}
                   </tbody>
                 </table>
               </div>

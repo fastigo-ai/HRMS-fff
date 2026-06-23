@@ -74,6 +74,7 @@ export const useHrStore = (selectorFn) => {
         empId: emp.empId,
         bankDetails: emp.bankDetails,
         joiningSalary: emp.joiningSalary || emp.bankDetails?.joiningSalary || "N/A",
+        joinDate: emp.joinDate || emp.createdAt,
         location: emp.location || (emp.address ? "HQ Austin" : "Remote"),
         gender: emp.gender || "male",
         prevCompany: emp.prevCompany || "N/A",
@@ -84,7 +85,8 @@ export const useHrStore = (selectorFn) => {
         prevSalarySlip: emp.prevSalarySlip || null,
         aadhaarNumber: emp.aadhaarNumber || '',
         aadhaarCardDoc: emp.aadhaarCardDoc || null,
-        panCardDoc: emp.panCardDoc || null
+        panCardDoc: emp.panCardDoc || null,
+        salaryBreakup: emp.salaryBreakup || null
       }));
       dispatch(setHrEmployees(mapped));
     } catch (err) {
@@ -137,7 +139,8 @@ export const useHrStore = (selectorFn) => {
             aadhaarNumber: employee.aadhaarNumber || '',
             aadhaarCardDoc: employee.aadhaarCardDoc || null,
             panCardDoc: employee.panCardDoc || null,
-            avatar: employee.avatar || null
+            avatar: employee.avatar || null,
+            salaryBreakup: employee.salaryBreakup || null
           };
  
           const result = await DatabaseService.addEmployee(normalizedEmployee);
@@ -161,6 +164,7 @@ export const useHrStore = (selectorFn) => {
             empId: dbEmp.empId,
             bankDetails: dbEmp.bankDetails,
             joiningSalary: dbEmp.joiningSalary || "N/A",
+            joinDate: dbEmp.joinDate || dbEmp.createdAt,
             gender: dbEmp.gender || "male",
             prevCompany: dbEmp.prevCompany || "N/A",
             prevDesignation: dbEmp.prevDesignation || "N/A",
@@ -170,7 +174,8 @@ export const useHrStore = (selectorFn) => {
             prevSalarySlip: dbEmp.prevSalarySlip || null,
             aadhaarNumber: dbEmp.aadhaarNumber || '',
             aadhaarCardDoc: dbEmp.aadhaarCardDoc || null,
-            panCardDoc: dbEmp.panCardDoc || null
+            panCardDoc: dbEmp.panCardDoc || null,
+            salaryBreakup: dbEmp.salaryBreakup || null
           };
 
           dispatch(insertEmployee(mappedEmp));
@@ -211,7 +216,8 @@ export const useHrStore = (selectorFn) => {
             aadhaarNumber: employee.aadhaarNumber || '',
             aadhaarCardDoc: employee.aadhaarCardDoc || null,
             panCardDoc: employee.panCardDoc || null,
-            avatar: employee.avatar || null
+            avatar: employee.avatar || null,
+            salaryBreakup: employee.salaryBreakup || null
           };
  
           const result = await DatabaseService.updateEmployee(id, normalizedEmployee);
@@ -234,6 +240,7 @@ export const useHrStore = (selectorFn) => {
             empId: dbEmp.empId,
             bankDetails: dbEmp.bankDetails,
             joiningSalary: dbEmp.joiningSalary || "N/A",
+            joinDate: dbEmp.joinDate || dbEmp.createdAt,
             gender: dbEmp.gender || "male",
             prevCompany: dbEmp.prevCompany || "N/A",
             prevDesignation: dbEmp.prevDesignation || "N/A",
@@ -243,7 +250,8 @@ export const useHrStore = (selectorFn) => {
             prevSalarySlip: dbEmp.prevSalarySlip || null,
             aadhaarNumber: dbEmp.aadhaarNumber || '',
             aadhaarCardDoc: dbEmp.aadhaarCardDoc || null,
-            panCardDoc: dbEmp.panCardDoc || null
+            panCardDoc: dbEmp.panCardDoc || null,
+            salaryBreakup: dbEmp.salaryBreakup || null
           };
 
           dispatch(updateEmployeeInState(mappedEmp));

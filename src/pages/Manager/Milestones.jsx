@@ -150,7 +150,7 @@ export default function PMMilestones() {
           
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-650 text-black hover:bg-indigo-700 hover:text-white text-xs font-bold rounded-xl transition shadow shadow-indigo-600/10"
+            className="cursor-pointer flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 text-black hover:bg-indigo-700 hover:text-white text-xs font-bold rounded-xl transition shadow shadow-indigo-600/10"
           >
             <Plus className="w-4 h-4" /> Add Project
           </button>
@@ -472,7 +472,7 @@ export default function PMMilestones() {
             </button>
             <button
               type="submit"
-              className="flex-1 py-2 bg-indigo-650 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition shadow shadow-indigo-600/10"
+              className="cursor-pointer flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition shadow shadow-indigo-600/10"
             >
               Create Roadmap
             </button>

@@ -14,6 +14,7 @@ import {
 
 export default function Notifications({
   notifications,
+  markNotificationRead,
   setNotifications,
   triggerToast
 }) {
@@ -21,7 +22,11 @@ export default function Notifications({
   const [pushToggled, setPushToggled] = useState(true);
 
   const handleMarkAllRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, isRead: true })));
+    if (markNotificationRead) {
+      markNotificationRead();
+    } else if (setNotifications) {
+      setNotifications(notifications.map(n => ({ ...n, isRead: true })));
+    }
     triggerToast('All notifications marked as read.');
   };
 

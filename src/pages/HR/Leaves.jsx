@@ -28,6 +28,7 @@ export default function HRLeaves({
 }) {
   const [requests, setRequests] = useState([]);
   const [policies, setPolicies] = useState([]);
+  const [wfhRequests, setWfhRequests] = useState([]);
   const [calendarStatus, setCalendarStatus] = useState({});
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -59,6 +60,9 @@ export default function HRLeaves({
         setRequests(data.requests);
         setPolicies(data.policies);
         setCalendarStatus(data.calendarStatus || {});
+        
+        const wfhData = await hrService.getWFHRequestsAll();
+        setWfhRequests(wfhData || []);
       } catch (err) {
         triggerToast('Failed to connect to database schema.', 'error');
       } finally {
@@ -128,6 +132,17 @@ export default function HRLeaves({
     }
   };
 
+  const handleResolveWFH = async (id, name, status) => {
+    try {
+      await hrService.resolveWFHRequest(id, status);
+      triggerToast(`WFH request for ${name} has been ${status.toLowerCase()}d!`);
+      const wfhData = await hrService.getWFHRequestsAll();
+      setWfhRequests(wfhData || []);
+    } catch (err) {
+      triggerToast('Failed to resolve WFH request.', 'error');
+    }
+  };
+
   const handleAddNewPolicy = async () => {
     try {
       const demoPolicy = {
@@ -148,6 +163,8 @@ export default function HRLeaves({
     r.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     r.type.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const pendingWFH = wfhRequests.filter(r => r.status === 'Pending');
 
   // Premium Shimmer Loading Skeleton
   if (loading) {
@@ -220,6 +237,20 @@ export default function HRLeaves({
           <Calendar className="w-3.5 h-3.5" />
           Holiday Administration
           {activeTab === 'holidays' && (
+            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-full" />
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab('wfh')}
+          className={`pb-3 text-xs font-bold transition-all relative flex items-center gap-1.5 ${
+            activeTab === 'wfh' 
+              ? 'text-indigo-600 dark:text-indigo-400 font-extrabold' 
+              : 'text-slate-400 dark:text-slate-500 hover:text-slate-600'
+          }`}
+        >
+          <Calendar className="w-3.5 h-3.5" />
+          WFH Approvals
+          {activeTab === 'wfh' && (
             <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-full" />
           )}
         </button>
@@ -500,6 +531,81 @@ export default function HRLeaves({
 
           </div>
         </>
+      ) : activeTab === 'wfh' ? (
+        /* Work From Home Approvals Tab Content */
+        <div className="bg-white dark:bg-slate-950 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm space-y-6">
+          <div className="flex justify-between items-center mb-6 border-b border-slate-50 dark:border-slate-900 pb-4">
+            <div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-indigo-500" />
+                Work From Home (WFH) Approvals
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">Review, audit and authorize remote work location schedules filed by employees across the organization</p>
+            </div>
+            <span className="text-xs font-bold text-slate-400 px-3 py-1 bg-slate-100 dark:bg-slate-900 rounded-full">{pendingWFH.length} Pending</span>
+          </div>
+
+          {pendingWFH.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center text-slate-400">
+              <CheckCircle className="w-12 h-12 text-emerald-500 stroke-1 opacity-80 mb-3 animate-bounce" />
+              <h4 className="text-sm font-bold text-slate-700 dark:text-slate-350">WFH Approvals In Sync</h4>
+              <p className="text-xs text-slate-450 mt-1">All employee WFH requests have been successfully audited and resolved.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {pendingWFH.map((req) => {
+                const emp = req.employee || {};
+                const name = emp.name || "Team Member";
+                const role = emp.position || "Employee";
+                return (
+                  <div 
+                    key={req._id} 
+                    className="flex flex-col lg:flex-row lg:items-center justify-between p-5 bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-900 rounded-2xl gap-6 hover:border-slate-200 dark:hover:border-slate-800 transition"
+                  >
+                    <div className="flex gap-4 flex-1">
+                      <div className="w-12 h-12 rounded-full bg-indigo-500/10 text-indigo-500 flex items-center justify-center font-bold text-sm shrink-0 border border-indigo-500/10">
+                        {name.split(' ').map(n => n[0]).join('')}
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">{name}</h4>
+                          <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/30">
+                            {req.type || 'Full Day'} WFH
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-semibold italic">
+                          "{req.reason}"
+                        </p>
+                        <div className="flex gap-4 text-[10px] text-slate-400 font-bold">
+                          <span>Role: {role}</span>
+                          <span>•</span>
+                          <span className="text-indigo-500">
+                            Duration: {new Date(req.startDate).toLocaleDateString()} ➔ {new Date(req.endDate).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex sm:items-center gap-3 shrink-0 self-end lg:self-center">
+                      <button 
+                        onClick={() => handleResolveWFH(req._id, name, 'Rejected')}
+                        className="px-4 py-2.5 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:text-rose-400 rounded-xl transition flex items-center gap-1"
+                      >
+                        <XCircle className="w-4 h-4" /> Reject
+                      </button>
+                      <button 
+                        onClick={() => handleResolveWFH(req._id, name, 'Approved')}
+                        className="px-4 py-2.5 text-xs font-bold text-white bg-violet-600 hover:bg-violet-750 rounded-xl transition flex items-center gap-1 shadow-md shadow-violet-600/10"
+                      >
+                        <CheckCircle className="w-4 h-4" /> Approve WFH
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       ) : (
         /* Holiday Administration Tab Content */
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-transition">

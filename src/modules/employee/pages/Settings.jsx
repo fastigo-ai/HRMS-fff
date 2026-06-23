@@ -52,7 +52,9 @@ export default function SettingsPage() {
     triggerToast('Push alert parameter updated!');
   };
 
-  const handlePasswordChange = (e) => {
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+
+  const handlePasswordChange = async (e) => {
     e.preventDefault();
     if (!passwordForm.current || !passwordForm.new || !passwordForm.confirm) {
       triggerToast('All password fields are required!', 'error');
@@ -62,8 +64,17 @@ export default function SettingsPage() {
       triggerToast('New passwords do not match!', 'error');
       return;
     }
-    triggerToast('Corporate password credentials successfully synchronized!');
-    setPasswordForm({ current: '', new: '', confirm: '' });
+    
+    try {
+      setIsUpdatingPassword(true);
+      await employeeService.updatePassword(passwordForm.current, passwordForm.new);
+      triggerToast('Corporate password credentials successfully synchronized!');
+      setPasswordForm({ current: '', new: '', confirm: '' });
+    } catch (error) {
+      triggerToast(error.message || 'Failed to update password', 'error');
+    } finally {
+      setIsUpdatingPassword(false);
+    }
   };
 
   const handleSubmitResignation = async (lastWorkingDay, reason) => {
@@ -87,6 +98,7 @@ export default function SettingsPage() {
       passwordForm={passwordForm}
       setPasswordForm={setPasswordForm}
       handlePasswordChange={handlePasswordChange}
+      isUpdatingPassword={isUpdatingPassword}
       triggerToast={triggerToast}
       resignation={resignation}
       resignationLoading={resignationLoading}

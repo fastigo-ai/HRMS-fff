@@ -3,7 +3,7 @@ import HRDashboard from '../../../pages/HR/Dashboard';
 import { useUiStore } from '../../../store/uiStore';
 import { useAuthStore } from '../../../store/authStore';
 import { useEmployeeStore } from '../../../store/employeeStore';
-import { authenticatedFetch } from '../../../services/api';
+import { authenticatedFetch, API_BASE_URL } from '../../../services/api';
 
 export default function DashboardPage() {
   const { triggerToast, notifications } = useUiStore();
@@ -33,7 +33,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchPersonalStats = async () => {
       try {
-        const res = await authenticatedFetch("https://hrms-bb.onrender.com/api/attendance/my");
+        const res = await authenticatedFetch(`${API_BASE_URL}/attendance/my`);
         const data = await res.json();
         if (res.ok) {
           setAttendanceStats(data.data.stats || {

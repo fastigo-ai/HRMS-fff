@@ -8,7 +8,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
-import { DatabaseService, authenticatedFetch } from '../../services/api';
+import { DatabaseService, authenticatedFetch, API_BASE_URL } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import { useEmployeeStore } from '../../store/employeeStore';
 import EmployeeAttendance from '../employees/Attendance';
@@ -48,7 +48,7 @@ export default function HRAttendance({
 
   const fetchPersonalAttendance = async () => {
     try {
-      const res = await authenticatedFetch("https://hrms-bb.onrender.com/api/attendance/my");
+      const res = await authenticatedFetch(`${API_BASE_URL}/attendance/my`);
       const data = await res.json();
       if (res.ok) {
         setPersonalAttendance({

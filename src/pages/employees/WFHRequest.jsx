@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Calendar,
   AlertCircle,
@@ -16,6 +17,10 @@ export default function WFHRequest({
   setCurrentTab,
   triggerToast
 }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const basePath = location.pathname.split('/')[1] || 'employee';
+
   const [wfhForm, setWfhForm] = useState({
     startDate: '',
     endDate: '',
@@ -58,12 +63,17 @@ export default function WFHRequest({
     }
   };
 
+  const goBackToAttendance = () => {
+    if (setCurrentTab) setCurrentTab('attendance');
+    navigate(`/${basePath}/attendance`);
+  };
+
   return (
     <div className="space-y-6">
       
       {/* Path header & top level actions matching Screenshot 2 */}
       <div className="flex items-center gap-2 text-xs text-slate-400 font-semibold">
-        <button onClick={() => setCurrentTab('attendance')} className="hover:text-indigo-600 transition">Attendance</button>
+        <button onClick={goBackToAttendance} className="hover:text-indigo-600 transition">Attendance</button>
         <span>&gt;</span>
         <span className="text-slate-600 dark:text-slate-300">WFH Request</span>
       </div>
@@ -283,31 +293,65 @@ export default function WFHRequest({
             
             <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">WFH Balance</h3>
             
-            <div>
-              <div className="flex justify-between items-baseline mb-1">
-                <span className="text-[10px] font-bold text-slate-400">Monthly Usage</span>
-                <div>
-                  <span className="text-xl font-extrabold text-slate-900 dark:text-white">4</span>
-                  <span className="text-xs text-slate-400 font-semibold"> / 8 days used</span>
-                </div>
-              </div>
+            {(() => {
+              const pendingCount = historyList.filter(item => item.status === 'Pending').length;
+              const approvedCount = historyList.filter(item => item.status === 'Approved').length;
               
-              <div className="w-full h-2 bg-slate-100 dark:bg-slate-900 rounded-full overflow-hidden">
-                <div className="h-full bg-indigo-600 dark:bg-indigo-500 rounded-full" style={{ width: '50%' }}></div>
-              </div>
-            </div>
+              const currentMonth = new Date().getMonth();
+              const currentYear = new Date().getFullYear();
+              let usedDays = 0;
+              
+              historyList.forEach(item => {
+                if (item.status === 'Approved' && item.startDate) {
+                  const start = new Date(item.startDate);
+                  if (start.getMonth() === currentMonth && start.getFullYear() === currentYear) {
+                    let days = 1;
+                    if (item.endDate) {
+                      const end = new Date(item.endDate);
+                      const diffTime = Math.abs(end - start);
+                      days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                    }
+                    if (item.type && item.type.includes('Half Day')) {
+                      days = Math.max(0.5, days - 0.5);
+                    }
+                    usedDays += days;
+                  }
+                }
+              });
 
-            {/* Grid count values */}
-            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-50 dark:border-slate-900">
-              <div className="p-3 bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-900 rounded-xl text-center">
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide block mb-0.5">Pending</span>
-                <span className="text-sm font-extrabold text-slate-800 dark:text-white">1</span>
-              </div>
-              <div className="p-3 bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-900 rounded-xl text-center">
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide block mb-0.5">Approved</span>
-                <span className="text-sm font-extrabold text-slate-800 dark:text-white">12</span>
-              </div>
-            </div>
+              const totalMonthlyQuota = 8;
+              const usagePercentage = Math.min((usedDays / totalMonthlyQuota) * 100, 100);
+
+              return (
+                <>
+                  <div>
+                    <div className="flex justify-between items-baseline mb-1">
+                      <span className="text-[10px] font-bold text-slate-400">Monthly Usage</span>
+                      <div>
+                        <span className="text-xl font-extrabold text-slate-900 dark:text-white">{usedDays}</span>
+                        <span className="text-xs text-slate-400 font-semibold"> / {totalMonthlyQuota} days used</span>
+                      </div>
+                    </div>
+                    
+                    <div className="w-full h-2 bg-slate-100 dark:bg-slate-900 rounded-full overflow-hidden">
+                      <div className="h-full bg-indigo-600 dark:bg-indigo-500 rounded-full transition-all duration-500" style={{ width: `${usagePercentage}%` }}></div>
+                    </div>
+                  </div>
+
+                  {/* Grid count values */}
+                  <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-50 dark:border-slate-900">
+                    <div className="p-3 bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-900 rounded-xl text-center">
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide block mb-0.5">Pending</span>
+                      <span className="text-sm font-extrabold text-slate-800 dark:text-white">{pendingCount}</span>
+                    </div>
+                    <div className="p-3 bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-900 rounded-xl text-center">
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide block mb-0.5">Approved</span>
+                      <span className="text-sm font-extrabold text-slate-800 dark:text-white">{approvedCount}</span>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
 
             {/* Blue circular plus button */}
             <button 

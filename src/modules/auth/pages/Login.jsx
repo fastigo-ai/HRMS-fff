@@ -17,9 +17,10 @@ export default function Login() {
   const presets = [
     {
       role: 'standard_employee',
-      name: 'Alex Johnson',
+      name: 'Mallik',
       label: 'Employee Preset',
-      email: 'employee@Fastigo X.io',
+      email: 'mallik@gmail.com',
+      password: 'password123',
       desc: 'Senior Developer',
       icon: User,
       color: 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/50'
@@ -28,32 +29,34 @@ export default function Login() {
       role: 'manager',
       name: 'David Miller',
       label: 'Manager Preset',
-      email: 'manager@Fastigo X.io',
+      email: 'david@Fastigo X.io',
+      password: 'password123',
       desc: 'Engineering Lead',
       icon: Briefcase,
       color: 'bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100 dark:bg-violet-950/20 dark:text-violet-400 dark:border-violet-900/50'
     },
     {
       role: 'hr_admin',
-      name: 'Sarah Jenkins',
+      name: 'Akhil',
       label: 'HR Admin Preset',
-      email: 'hr@Fastigo X.io',
+      email: 'akhil@gmail.com',
+      password: 'Password@321',
       desc: 'HR Director',
       icon: Shield,
       color: 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 dark:bg-indigo-950/20 dark:text-indigo-400 dark:border-indigo-900/50'
     }
   ];
 
-  const handlePresetClick = async (presetEmail) => {
+  const handlePresetClick = async (preset) => {
     setLoading(true);
-    setEmail(presetEmail);
-    setPassword('password123');
+    setEmail(preset.email);
+    setPassword(preset.password);
     
-    const result = await login(presetEmail, 'password123');
+    const result = await login(preset.email, preset.password);
     setLoading(false);
     
     if (result.success) {
-      triggerToast(`Welcome back, ${presetEmail === 'hr@Fastigo X.io' ? 'Sarah' : presetEmail === 'manager@Fastigo X.io' ? 'David' : 'Alex'}! Session synchronized.`);
+      triggerToast(`Welcome back, ${preset.name}! Session synchronized.`);
       navigate(result.role === 'hr_admin' ? '/hr/dashboard' : result.role === 'manager' ? '/manager/dashboard' : '/employee/dashboard');
     } else {
       triggerToast(result.error, 'error');
@@ -124,7 +127,7 @@ export default function Login() {
                     key={preset.role}
                     type="button"
                     disabled={loading}
-                    onClick={() => handlePresetClick(preset.email)}
+                    onClick={() => handlePresetClick(preset)}
                     className={`flex flex-col items-start p-3.5 rounded-2xl border text-left transition-all hover:scale-[1.02] shadow-sm ${preset.color}`}
                   >
                     <Icon className="w-5 h-5 mb-2.5" />
@@ -190,17 +193,7 @@ export default function Login() {
               </button>
             </form>
 
-            <div className="text-center pt-2">
-              <span className="text-[11px] text-slate-400 block">
-                Don't have a workspace user?{' '}
-                <Link
-                  to="/register"
-                  className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
-                >
-                  Register Profile
-                </Link>
-              </span>
-            </div>
+           
           </div>
         </div>
 

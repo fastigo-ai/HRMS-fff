@@ -8,7 +8,8 @@ import {
   X,
   FolderKanban,
   Briefcase,
-  BarChart3
+  BarChart3,
+  Settings
 } from 'lucide-react';
 
 import { useAuthStore } from '../../store/authStore';
@@ -32,7 +33,8 @@ export default function HRSidebar({
     { id: 'hr-payroll', label: 'Payroll', icon: IndianRupee },
     { id: 'hr-recruitment', label: 'Recruitment', icon: Briefcase },
     { id: 'hr-sales-audit', label: 'Sales Audit', icon: BarChart3 },
-    { id: 'hr-reports', label: 'Reports', icon: BarChart3 }
+    { id: 'hr-reports', label: 'Reports', icon: BarChart3 },
+    { id: 'hr-company-details', label: 'Company Settings', icon: Settings }
   ];
 
   return (

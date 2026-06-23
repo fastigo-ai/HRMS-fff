@@ -64,24 +64,27 @@ export default function Payroll({
   // Get active payslip or fallback to joining salary from profile
   const latestPayslip = payslips && payslips.length > 0 ? payslips[0] : null;
 
-  // Derive salary figures: use disbursed payslip first, then profile joiningSalary as fallback
-  const joiningBaseSalary = parseFloat(
-    profileData?.joiningSalary ||
-    profileData?.bankDetails?.joiningSalary ||
-    0
-  );
+  const ctc = Number(String(profileData?.joiningSalary || '0').replace(/[^0-9.]/g, ''));
+  const breakup = profileData?.salaryBreakup && Object.keys(profileData.salaryBreakup).length > 0 && profileData.salaryBreakup.basic ? profileData.salaryBreakup : {
+    basic: Math.round(ctc * 0.7),
+    hra: Math.round(ctc * 0.3),
+    pf: Math.round(ctc * 0.7 * 0.12),
+    specialAllowance: 0,
+    customFields: []
+  };
+  
+  // Real breakdown from HR Profile DB (or HR default split)
+  const salaryBasic = breakup.basic || 0;
+  const salaryHra = breakup.hra || 0;
+  const specialAllowance = breakup.specialAllowance || 0;
+  const pfDeduction = breakup.pf || 0;
 
-  const baseSalary  = latestPayslip ? latestPayslip.baseSalary  : joiningBaseSalary;
-  const taxWithheld = latestPayslip ? latestPayslip.taxWithheld : Math.round(joiningBaseSalary * 0.15);
-  const netPay      = latestPayslip ? latestPayslip.netPay      : baseSalary - taxWithheld;
+  const baseSalary = ctc;
+  const totalDeductions = pfDeduction;
+  const netPay = baseSalary - totalDeductions;
 
-  // Flag that we're showing the profile fallback (no HR disbursement yet)
-  const isProfileFallback = !latestPayslip && joiningBaseSalary > 0;
-  const isNoData = !latestPayslip && joiningBaseSalary === 0;
+  const isNoData = ctc === 0;
 
-  // Dynamic salary split
-  const salaryBasic = Math.round(baseSalary * 0.7);
-  const salaryHra = baseSalary - salaryBasic;
 
   const handleDownloadClick = (slip) => {
     setDownloadingPayslip(slip._id);
@@ -148,17 +151,17 @@ export default function Payroll({
             <span className="text-2xl font-extrabold text-slate-900 dark:text-white">₹{baseSalary.toLocaleString('en-IN')}</span>
             <span className="text-xs text-emerald-600 font-bold ml-2">/ yearly</span>
           </div>
-          <p className="text-[10px] text-slate-400 font-semibold mt-2">Sum of Basic Salary & HRA Allowance</p>
+          <p className="text-[10px] text-slate-400 font-semibold mt-2">Sum of Basic, HRA & Special Allowances</p>
         </div>
 
         {/* Deductions Card */}
         <div className="bg-white dark:bg-slate-950 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
           <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Total Deductions</span>
           <div className="flex items-baseline">
-            <span className="text-2xl font-extrabold text-rose-600">₹{taxWithheld.toLocaleString('en-IN')}</span>
+            <span className="text-2xl font-extrabold text-rose-600">₹{totalDeductions.toLocaleString('en-IN')}</span>
             <span className="text-xs text-rose-500 font-bold ml-2">/ yearly</span>
           </div>
-          <p className="text-[10px] text-slate-400 font-semibold mt-2">Sum of 15% standard Income Tax withheld</p>
+          <p className="text-[10px] text-slate-400 font-semibold mt-2">Sum of Provident Fund & Statutory Deductions</p>
         </div>
 
         {/* Net Take-home Card */}
@@ -173,15 +176,7 @@ export default function Payroll({
 
       </div>
 
-      {/* Data source context banner */}
-      {isProfileFallback && (
-        <div className="flex items-start gap-3 px-4 py-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-xl text-xs">
-          <span className="text-amber-500 shrink-0 mt-0.5">ℹ</span>
-          <p className="text-amber-700 dark:text-amber-400 font-semibold leading-relaxed">
-            No payslip disbursed by HR yet. Figures below are estimated from your <strong>joining salary</strong> on record (₹{joiningBaseSalary.toLocaleString('en-IN')}). They will update automatically once HR generates your first official payslip.
-          </p>
-        </div>
-      )}
+
 
       {isNoData && (
         <div className="flex items-start gap-3 px-4 py-3 bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-xl text-xs">
@@ -212,6 +207,12 @@ export default function Payroll({
                   <span className="text-slate-500 dark:text-slate-400">HRA Allowance</span>
                   <span className="font-bold text-slate-800 dark:text-slate-200">₹{salaryHra.toLocaleString('en-IN')}</span>
                 </div>
+                {specialAllowance > 0 && (
+                  <div className="py-2.5 flex justify-between">
+                    <span className="text-slate-500 dark:text-slate-400">Special Allowance</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">₹{specialAllowance.toLocaleString('en-IN')}</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -220,12 +221,12 @@ export default function Payroll({
               <h4 className="text-xs font-bold text-rose-600 bg-rose-50 dark:bg-rose-950/20 px-3 py-1.5 rounded-lg uppercase tracking-wider text-center">Deductions</h4>
               <div className="divide-y divide-slate-100 dark:divide-slate-900 text-xs">
                 <div className="py-2.5 flex justify-between">
-                  <span className="text-slate-500 dark:text-slate-400">Income Tax (Withheld 15%)</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">₹{taxWithheld.toLocaleString('en-IN')}</span>
+                  <span className="text-slate-500 dark:text-slate-400">Income Tax (Withheld)</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">₹{(latestPayslip?.incomeTax || 0).toLocaleString('en-IN')}</span>
                 </div>
                 <div className="py-2.5 flex justify-between">
                   <span className="text-slate-500 dark:text-slate-400">Provident Fund (PF)</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">₹0</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">₹{pfDeduction.toLocaleString('en-IN')}</span>
                 </div>
               </div>
             </div>
@@ -386,22 +387,39 @@ export default function Payroll({
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-700">
                     <tr>
-                      <td className="p-2.5 font-medium text-slate-600">Basic Salary (70%)</td>
-                      <td className="p-2.5 text-right font-bold text-slate-800 border-r border-slate-200">₹{Math.round(selectedSlip.baseSalary * 0.7).toLocaleString('en-IN')}</td>
-                      <td className="p-2.5 font-medium text-slate-600">Income Tax (Withheld 15%)</td>
-                      <td className="p-2.5 text-right font-bold text-rose-600">₹{selectedSlip.taxWithheld.toLocaleString('en-IN')}</td>
+                      <td className="p-2.5 font-medium text-slate-600">Basic Salary</td>
+                      <td className="p-2.5 text-right font-bold text-slate-800 border-r border-slate-200">₹{(selectedSlip.basic || salaryBasic).toLocaleString('en-IN')}</td>
+                      <td className="p-2.5 font-medium text-slate-600">Income Tax (Withheld)</td>
+                      <td className="p-2.5 text-right font-bold text-rose-600">₹{(selectedSlip.incomeTax || 0).toLocaleString('en-IN')}</td>
                     </tr>
                     <tr>
-                      <td className="p-2.5 font-medium text-slate-600">House Rent Allowance (HRA 30%)</td>
-                      <td className="p-2.5 text-right font-bold text-slate-800 border-r border-slate-200">₹{(selectedSlip.baseSalary - Math.round(selectedSlip.baseSalary * 0.7)).toLocaleString('en-IN')}</td>
+                      <td className="p-2.5 font-medium text-slate-600">House Rent Allowance (HRA)</td>
+                      <td className="p-2.5 text-right font-bold text-slate-800 border-r border-slate-200">₹{(selectedSlip.hra || salaryHra).toLocaleString('en-IN')}</td>
                       <td className="p-2.5 font-medium text-slate-600">Provident Fund (PF)</td>
-                      <td className="p-2.5 text-right font-bold text-slate-800">₹0</td>
+                      <td className="p-2.5 text-right font-bold text-slate-800">₹{(selectedSlip.providentFund || pfDeduction).toLocaleString('en-IN')}</td>
                     </tr>
+                    {(selectedSlip.specialAllowance) > 0 && (
+                      <tr>
+                        <td className="p-2.5 font-medium text-slate-600">Special Allowance</td>
+                        <td className="p-2.5 text-right font-bold text-slate-800 border-r border-slate-200">₹{(selectedSlip.specialAllowance).toLocaleString('en-IN')}</td>
+                        <td className="p-2.5 font-medium text-slate-600"></td>
+                        <td className="p-2.5 text-right font-bold text-slate-800"></td>
+                      </tr>
+                    )}
+                    {selectedSlip.deductionAmount > 0 && (
+                      <tr>
+                        <td className="p-2.5 font-medium text-slate-400 border-r border-slate-200" colSpan="2">
+                          <span className="text-[10px] uppercase font-bold text-slate-450">Adjustment:</span> Leave-based Deductions applied
+                        </td>
+                        <td className="p-2.5 font-semibold text-rose-500">Unpaid Leaves ({selectedSlip.extraLeaves} day(s))</td>
+                        <td className="p-2.5 text-right font-bold text-rose-600">₹{selectedSlip.deductionAmount.toLocaleString('en-IN')}</td>
+                      </tr>
+                    )}
                     <tr className="bg-slate-50 border-t border-slate-200 font-bold text-slate-800">
                       <td className="p-2.5">Gross Total Earnings</td>
-                      <td className="p-2.5 text-right border-r border-slate-200">₹{selectedSlip.baseSalary.toLocaleString('en-IN')}</td>
+                      <td className="p-2.5 text-right border-r border-slate-200">₹{(selectedSlip.basic ? selectedSlip.baseSalary : baseSalary).toLocaleString('en-IN')}</td>
                       <td className="p-2.5">Total Deductions Outflow</td>
-                      <td className="p-2.5 text-right text-rose-600">₹{selectedSlip.taxWithheld.toLocaleString('en-IN')}</td>
+                      <td className="p-2.5 text-right text-rose-600">₹{((selectedSlip.incomeTax || 0) + (selectedSlip.providentFund || 0) + (selectedSlip.deductionAmount || 0)).toLocaleString('en-IN')}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -412,12 +430,12 @@ export default function Payroll({
                 <div>
                   <span className="text-[9px] font-semibold text-slate-350 uppercase block leading-none mb-1">Total Net Disbursed Salary</span>
                   <span className="text-xs text-slate-300 font-medium italic">
-                    Amount in words: <strong className="text-white not-italic">{numberToWords(selectedSlip.netPay)} Indian Rupees Only</strong>
+                    Amount in words: <strong className="text-white not-italic">{numberToWords(selectedSlip.basic || salaryBasic)} Indian Rupees Only</strong>
                   </span>
                 </div>
                 <div className="text-right">
                   <span className="text-[9px] font-semibold text-slate-350 uppercase block leading-none mb-1">Direct Bank Clearing</span>
-                  <span className="text-2xl font-black text-white tracking-tight">₹{selectedSlip.netPay.toLocaleString('en-IN')}</span>
+                  <span className="text-2xl font-black text-white tracking-tight">₹{(selectedSlip.basic || salaryBasic).toLocaleString('en-IN')}</span>
                 </div>
               </div>
 

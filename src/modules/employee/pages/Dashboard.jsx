@@ -4,7 +4,7 @@ import EmployeeDashboard from '../../../pages/employees/Dashboard';
 import { useAuthStore } from '../../../store/authStore';
 import { useEmployeeStore } from '../../../store/employeeStore';
 import { useUiStore } from '../../../store/uiStore';
-import { authenticatedFetch } from '../../../services/api';
+import { authenticatedFetch, API_BASE_URL } from '../../../services/api';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -22,7 +22,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await authenticatedFetch("https://hrms-bb.onrender.com/api/attendance/my");
+        const res = await authenticatedFetch(`${API_BASE_URL}/attendance/my`);
         const data = await res.json();
         if (res.ok) {
           setAttendanceStats(data.data.stats || {

@@ -25,6 +25,7 @@ export default function Settings({
   passwordForm,
   setPasswordForm,
   handlePasswordChange,
+  isUpdatingPassword,
   triggerToast,
   resignation,
   resignationLoading,
@@ -210,9 +211,10 @@ export default function Settings({
               </div>
               <button 
                 type="submit"
-                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition"
+                disabled={isUpdatingPassword}
+                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition"
               >
-                Update Password Credentials
+                {isUpdatingPassword ? 'Updating Password...' : 'Update Password Credentials'}
               </button>
             </form>
           </div>

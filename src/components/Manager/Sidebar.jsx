@@ -10,7 +10,9 @@ import {
   TrendingUp,
   CalendarDays,
   IndianRupee,
-  Bell
+  Bell,
+  Clock,
+  Settings
 } from 'lucide-react';
 
 import { useAuthStore } from '../../store/authStore';
@@ -25,6 +27,7 @@ export default function PMSidebar({
 
   const menuItems = [
     { id: 'pm-dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'pm-attendance', label: 'Attendance', icon: Clock },
     { id: 'pm-team', label: 'Team Allocation', icon: Users },
     { id: 'pm-tasks', label: 'Sprint Tasks', icon: CheckSquare },
     { id: 'pm-approvals', label: 'Approvals Hub', icon: ClipboardCheck },
@@ -33,6 +36,7 @@ export default function PMSidebar({
     { id: 'pm-sales-audit', label: 'Sales Audit', icon: TrendingUp },
     { id: 'pm-payroll', label: 'Payroll', icon: IndianRupee },
     { id: 'pm-notifications', label: 'Notifications', icon: Bell },
+    { id: 'pm-company-details', label: 'Company Settings', icon: Settings },
   ];
 
   return (

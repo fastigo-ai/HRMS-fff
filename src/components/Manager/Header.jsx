@@ -35,6 +35,7 @@ export default function PMHeader({
   const getBreadcrumbTitle = () => {
     switch (currentTab) {
       case 'pm-dashboard': return 'PM Dashboard Overview';
+      case 'pm-attendance': return 'My Attendance Records';
       case 'pm-team': return 'Team Allocation & Bandwidth';
       case 'pm-tasks': return 'Sprint Kanban board';
       case 'pm-approvals': return 'Approvals Hub & Timesheets';

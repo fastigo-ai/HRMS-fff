@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import EmployeeAttendance from '../../../pages/employees/Attendance';
 import { useAuthStore } from '../../../store/authStore';
 import { useUiStore } from '../../../store/uiStore';
-import { authenticatedFetch } from '../../../services/api';
+import { authenticatedFetch, API_BASE_URL } from '../../../services/api';
 
 export default function AttendancePage() {
   const { clockedIn, elapsedTime, toggleClock, clockOutCompleted, setCurrentTab } = useAuthStore();
@@ -19,7 +19,7 @@ export default function AttendancePage() {
 
   const fetchAttendance = async () => {
     try {
-      const res = await authenticatedFetch("https://hrms-bb.onrender.com/api/attendance/my");
+      const res = await authenticatedFetch(`${API_BASE_URL}/attendance/my`);
       const data = await res.json();
       if (res.ok) {
         setAttendanceData({

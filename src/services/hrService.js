@@ -478,6 +478,8 @@ export const hrService = {
           if (employee[key] !== undefined && employee[key] !== null) {
             if (key === 'bankDetails' && typeof employee[key] === 'object') {
               formData.append(key, JSON.stringify(employee[key]));
+            } else if (key === 'salaryBreakup' && typeof employee[key] === 'object') {
+              formData.append(key, JSON.stringify(employee[key]));
             } else if (key === 'skills' && Array.isArray(employee[key])) {
               employee[key].forEach(s => formData.append('skills', s));
             } else {
@@ -515,6 +517,8 @@ export const hrService = {
         Object.keys(payload).forEach(key => {
           if (payload[key] !== undefined && payload[key] !== null) {
             if (key === 'bankDetails' && typeof payload[key] === 'object') {
+              formData.append(key, JSON.stringify(payload[key]));
+            } else if (key === 'salaryBreakup' && typeof payload[key] === 'object') {
               formData.append(key, JSON.stringify(payload[key]));
             } else if (key === 'skills' && Array.isArray(payload[key])) {
               payload[key].forEach(s => formData.append('skills', s));
@@ -877,6 +881,34 @@ export const hrService = {
       return data.data.html;
     } catch (err) {
       console.error("Failed to generate dynamic letter contract:", err);
+      throw err;
+    }
+  },
+
+  getCompanyDetails: async () => {
+    try {
+      const res = await authenticatedFetch(`${API_BASE_URL}/company`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      return data.data.company;
+    } catch (err) {
+      console.error("Failed to retrieve company details:", err);
+      throw err;
+    }
+  },
+
+  updateCompanyDetails: async (payload) => {
+    try {
+      const res = await authenticatedFetch(`${API_BASE_URL}/company`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      return data.data.company;
+    } catch (err) {
+      console.error("Failed to update company details:", err);
       throw err;
     }
   }

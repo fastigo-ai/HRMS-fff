@@ -13,6 +13,23 @@ export const employeeService = {
     return updatedData;
   },
 
+  updatePassword: async (currentPassword, newPassword) => {
+    try {
+      const res = await authenticatedFetch(`${API_BASE_URL}/auth/password`, {
+        method: "PATCH",
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to update password");
+      }
+      return data;
+    } catch (err) {
+      console.error("Failed to update password:", err);
+      throw err;
+    }
+  },
+
   getTasks: async () => {
     try {
       const res = await authenticatedFetch(`${API_BASE_URL}/tasks`);

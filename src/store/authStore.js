@@ -1,6 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { useSelector, useDispatch } from 'react-redux';
 import { useMemo } from 'react';
+import { API_BASE_URL } from '../services/apiClient';
 
 const getStoredProfile = () => {
   try {
@@ -137,7 +138,7 @@ export const useAuthStore = (selectorFn) => {
 
       login: async (email, password) => {
         try {
-          const res = await fetch("https://hrms-bb.onrender.com/api/auth/login", {
+          const res = await fetch(`${API_BASE_URL}/auth/login`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -175,7 +176,7 @@ export const useAuthStore = (selectorFn) => {
             ? payload 
             : { name: payload, email: arg2, password: arg3, role: arg4 };
 
-          const res = await fetch("https://hrms-bb.onrender.com/api/auth/signup", {
+          const res = await fetch(`${API_BASE_URL}/auth/signup`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -209,7 +210,7 @@ export const useAuthStore = (selectorFn) => {
 
       logout: async () => {
         try {
-          await fetch("https://hrms-bb.onrender.com/api/auth/logout", {
+          await fetch(`${API_BASE_URL}/auth/logout`, {
             method: "POST",
             credentials: "include",
           });
@@ -235,7 +236,7 @@ export const useAuthStore = (selectorFn) => {
 
       refreshSession: async () => {
         try {
-          const res = await fetch("https://hrms-bb.onrender.com/api/auth/refresh", {
+          const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
             method: "POST",
             credentials: "include",
           });
@@ -266,7 +267,7 @@ export const useAuthStore = (selectorFn) => {
       updateProfile: async (newProfile) => {
         try {
           const token = localStorage.getItem('Fastigo X_token');
-          const res = await fetch("https://hrms-bb.onrender.com/api/auth/profile", {
+          const res = await fetch(`${API_BASE_URL}/auth/profile`, {
             method: "PATCH",
             headers: {
               "Content-Type": "application/json",
@@ -309,13 +310,45 @@ export const useAuthStore = (selectorFn) => {
         const token = localStorage.getItem('Fastigo X_token');
         try {
           if (!clockedIn) {
-            const res = await fetch("https://hrms-bb.onrender.com/api/attendance/clock-in", {
+            const getCoordinates = () => {
+              return new Promise((resolve) => {
+                if (!navigator.geolocation) {
+                  return resolve({ error: "Geolocation is not supported by your browser!" });
+                }
+                navigator.geolocation.getCurrentPosition(
+                  (position) => {
+                    resolve({
+                      latitude: position.coords.latitude,
+                      longitude: position.coords.longitude
+                    });
+                  },
+                  (error) => {
+                    resolve({ error: error.message });
+                  },
+                  { enableHighAccuracy: true, timeout: 8000 }
+                );
+              });
+            };
+
+            if (triggerToast) triggerToast("Verifying geofence coordinates...");
+            const coords = await getCoordinates();
+            if (coords.error) {
+              if (triggerToast) triggerToast(`Geofence verification failed: ${coords.error}. Coordinates are required to check in.`, "error");
+              return;
+            }
+
+            const res = await fetch(`${API_BASE_URL}/attendance/clock-in`, {
               method: "POST",
               headers: { 
                 "Content-Type": "application/json",
                 ...(token ? { "Authorization": `Bearer ${token}` } : {}),
               },
               credentials: "include",
+              body: JSON.stringify({
+                mode: "Office",
+                latitude: coords.latitude,
+                longitude: coords.longitude
+              })
             });
             const data = await res.json();
             if (!res.ok) {
@@ -325,7 +358,7 @@ export const useAuthStore = (selectorFn) => {
             dispatch(setClockState({ clockedIn: true, clockInTime: data.data.attendance.clockIn, clockOutCompleted: false }));
             if (triggerToast) triggerToast('Clocked In successfully! Current geofence checked.');
           } else {
-            const res = await fetch("https://hrms-bb.onrender.com/api/attendance/clock-out", {
+            const res = await fetch(`${API_BASE_URL}/attendance/clock-out`, {
               method: "POST",
               headers: { 
                 "Content-Type": "application/json",
@@ -351,7 +384,7 @@ export const useAuthStore = (selectorFn) => {
       checkTodayClockStatus: async () => {
         const token = localStorage.getItem('Fastigo X_token');
         try {
-          const res = await fetch("https://hrms-bb.onrender.com/api/attendance/today", {
+          const res = await fetch(`${API_BASE_URL}/attendance/today`, {
             headers: {
               ...(token ? { "Authorization": `Bearer ${token}` } : {}),
             },

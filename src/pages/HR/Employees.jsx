@@ -226,6 +226,58 @@ export default function EmployeesPage() {
       setCompilingDoc(false);
     }
   };
+
+  const handlePrintDocument = () => {
+    const editableEl = document.querySelector('.printable-doc-content');
+    const content = editableEl ? editableEl.innerHTML : compiledDocHtml;
+    if (!content) return;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    doc.open();
+    doc.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Official Document</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+            body {
+              margin: 0;
+              padding: 20px;
+              background: #ffffff;
+              color: #1e293b;
+              font-family: 'Inter', sans-serif;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            @page {
+              size: auto;
+              margin: 20mm;
+            }
+          </style>
+        </head>
+        <body>
+          ${content}
+        </body>
+      </html>
+    `);
+    doc.close();
+
+    setTimeout(() => {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+      document.body.removeChild(iframe);
+    }, 250);
+  };
   
   // Tab control inside the Register Staff Member modal
   const [activeFormTab, setActiveFormTab] = useState('basic');
@@ -264,6 +316,13 @@ export default function EmployeesPage() {
     aadhaarCardDoc: null,
     panCardDoc: null,
     avatar: null,
+    salaryBreakup: {
+      basic: '',
+      hra: '',
+      specialAllowance: '',
+      pf: '',
+      customFields: []
+    }
   });
 
   const filtered = hrEmployees.filter(emp => {
@@ -394,6 +453,13 @@ export default function EmployeesPage() {
                 aadhaarCardDoc: row.aadhaarCardDoc || null,
                 panCardDoc: row.panCardDoc || null,
                 avatar: row.avatar || null,
+                salaryBreakup: row.salaryBreakup || {
+                  basic: '',
+                  hra: '',
+                  specialAllowance: '',
+                  pf: '',
+                  customFields: []
+                }
               });
               setIsEditMode(true);
               setIsModalOpen(true);
@@ -484,7 +550,8 @@ export default function EmployeesPage() {
       prevRelievingDoc: null, prevSalarySlip: null,
       bankName: '', accountNo: '', panNumber: '', ifscCode: '', joiningSalary: '',
       aadhaarNumber: '', aadhaarCardDoc: null, panCardDoc: null,
-      avatar: null
+      avatar: null,
+      salaryBreakup: { basic: '', hra: '', specialAllowance: '', pf: '', customFields: [] }
     });
     setActiveFormTab('basic');
     setIsEditMode(false);
@@ -598,7 +665,8 @@ export default function EmployeesPage() {
                     prevRelievingDoc: null, prevSalarySlip: null,
                     bankName: '', accountNo: '', panNumber: '', ifscCode: '', joiningSalary: '',
                     aadhaarNumber: '', aadhaarCardDoc: null, panCardDoc: null,
-                    avatar: null
+                    avatar: null,
+                    salaryBreakup: { basic: '', hra: '', specialAllowance: '', pf: '', customFields: [] }
                   });
                   setIsModalOpen(true);
                 }}
@@ -763,7 +831,7 @@ export default function EmployeesPage() {
                               setResignationToResolve(res);
                               setResolveResForm({ status: 'Approved', lastWorkingDay: res.lastWorkingDay.split('T')[0] });
                             }}
-                            className="px-4 py-2 bg-indigo-650 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm transition"
+                            className="cursor-pointer px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm transition"
                           >
                             Resolve Case
                           </button>
@@ -1028,13 +1096,13 @@ export default function EmployeesPage() {
             </div>
 
             {/* Letter Preview & Editable Editor Container (2/3) */}
-            <div className="lg:col-span-2 bg-white dark:bg-slate-950 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between min-h-[450px]">
+            <div className="lg:col-span-2 bg-white dark:bg-slate-955 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between min-h-[450px]">
               <div className="space-y-4">
                 <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-900">
                   <h4 className="text-xs font-extrabold uppercase text-slate-400 tracking-wider">Official Document Preview & Edit Hub</h4>
                   {compiledDocHtml && (
                     <button
-                      onClick={() => window.print()}
+                      onClick={handlePrintDocument}
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-lg transition"
                     >
                       <Printer className="w-3.5 h-3.5" />
@@ -1044,7 +1112,7 @@ export default function EmployeesPage() {
                 </div>
 
                 {compiledDocHtml ? (
-                  <div className="p-2 border border-slate-100 dark:border-slate-850 bg-slate-50 dark:bg-slate-900/50 rounded-2xl relative overflow-hidden">
+                  <div className="p-2 border border-slate-100 dark:border-slate-850 bg-slate-55 dark:bg-slate-900/50 rounded-2xl relative overflow-hidden">
                     <div className="absolute top-2 right-2 text-[9px] font-extrabold text-indigo-500 uppercase tracking-widest bg-indigo-50 dark:bg-indigo-950/65 px-2.5 py-1 border border-indigo-150 dark:border-indigo-900/50 rounded-lg">
                       ✍️ Live Editable Template
                     </div>
@@ -1052,7 +1120,7 @@ export default function EmployeesPage() {
                     <div 
                       contentEditable={true}
                       suppressContentEditableWarning={true}
-                      className="bg-white dark:bg-slate-950 p-8 rounded-xl min-h-[500px] text-xs font-medium text-slate-800 dark:text-slate-350 leading-relaxed border border-slate-150 dark:border-slate-900 shadow-inner overflow-y-auto focus:outline-none"
+                      className="printable-doc-content bg-white dark:bg-slate-950 p-8 rounded-xl min-h-[500px] text-xs font-medium text-slate-800 dark:text-slate-350 leading-relaxed border border-slate-150 dark:border-slate-900 shadow-inner overflow-y-auto focus:outline-none"
                       style={{ fontFamily: 'Georgia, serif' }}
                       dangerouslySetInnerHTML={{ __html: compiledDocHtml }}
                     />
@@ -1240,10 +1308,50 @@ export default function EmployeesPage() {
                 <CreditCard className="w-3.5 h-3.5" /> Payroll, Bank & Financial Parameters
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
-                <div className="flex items-center justify-between py-1 border-b border-slate-150 dark:border-slate-900">
-                  <span className="font-bold text-slate-500">Offered Annual Salary:</span>
-                  <span className="font-extrabold text-slate-850 dark:text-white">₹{selectedEmp.joiningSalary || 'N/A'}</span>
+                <div className="flex items-center justify-between py-1 border-b border-slate-150 dark:border-slate-900 col-span-1 md:col-span-2">
+                  <span className="font-bold text-slate-500">Offered Annual Salary (CTC):</span>
+                  <span className="font-extrabold text-slate-850 dark:text-white text-sm">₹{selectedEmp.joiningSalary || 'N/A'}</span>
                 </div>
+                
+                {(() => {
+                  const ctc = Number(String(selectedEmp.joiningSalary || '0').replace(/[^0-9.]/g, ''));
+                  const breakup = selectedEmp.salaryBreakup || {
+                    basic: Math.round(ctc * 0.7),
+                    hra: Math.round(ctc * 0.3),
+                    pf: Math.round(ctc * 0.7 * 0.12),
+                    specialAllowance: 0,
+                    customFields: []
+                  };
+
+                  return (
+                    <>
+                      <div className="flex items-center justify-between py-1 border-b border-slate-150 dark:border-slate-900">
+                        <span className="font-semibold text-slate-500 text-[10px]">Basic Salary:</span>
+                        <span className="font-bold text-slate-850 dark:text-white">₹{breakup.basic || '0'}</span>
+                      </div>
+                      <div className="flex items-center justify-between py-1 border-b border-slate-150 dark:border-slate-900">
+                        <span className="font-semibold text-slate-500 text-[10px]">HRA:</span>
+                        <span className="font-bold text-slate-850 dark:text-white">₹{breakup.hra || '0'}</span>
+                      </div>
+                      <div className="flex items-center justify-between py-1 border-b border-slate-150 dark:border-slate-900">
+                        <span className="font-semibold text-slate-500 text-[10px]">PF Deduction:</span>
+                        <span className="font-bold text-slate-850 dark:text-white">₹{breakup.pf || '0'}</span>
+                      </div>
+                      <div className="flex items-center justify-between py-1 border-b border-slate-150 dark:border-slate-900">
+                        <span className="font-semibold text-slate-500 text-[10px]">Special Allowance:</span>
+                        <span className="font-bold text-slate-850 dark:text-white">₹{breakup.specialAllowance || '0'}</span>
+                      </div>
+                      {breakup.customFields?.map((field, idx) => (
+                        <div key={idx} className="flex items-center justify-between py-1 border-b border-slate-150 dark:border-slate-900">
+                          <span className="font-semibold text-slate-500 text-[10px]">{field.key || 'Custom Component'}:</span>
+                          <span className="font-bold text-slate-850 dark:text-white">₹{field.value || '0'}</span>
+                        </div>
+                      ))}
+                      <div className="col-span-1 md:col-span-2 my-1" />
+                    </>
+                  );
+                })()}
+
                 <div className="flex items-center justify-between py-1 border-b border-slate-150 dark:border-slate-900">
                   <span className="font-bold text-slate-500">Bank Partner Name:</span>
                   <span className="font-bold text-slate-850 dark:text-white">{selectedEmp.bankDetails?.bankName || selectedEmp.bankName || 'N/A'}</span>
@@ -1561,7 +1669,7 @@ export default function EmployeesPage() {
               </button>
               <button
                 type="submit"
-                className="px-5 py-2 bg-indigo-650 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-sm"
+                className="cursor-pointer px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-sm"
               >
                 Confirm Resolution
               </button>
@@ -1599,6 +1707,18 @@ export default function EmployeesPage() {
             >
               <Briefcase className="w-3.5 h-3.5" />
               Career History
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveFormTab('salary_breakup')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all ${
+                activeFormTab === 'salary_breakup'
+                  ? 'bg-white dark:bg-slate-950 text-violet-650 shadow-sm border border-slate-200/50 dark:border-slate-800'
+                  : 'text-slate-455 hover:text-slate-700'
+              }`}
+            >
+              <TrendingUp className="w-3.5 h-3.5" />
+              Salary Breakup
             </button>
             <button
               type="button"
@@ -1955,20 +2075,108 @@ export default function EmployeesPage() {
             </div>
           )}
 
-          {/* TAB 3: PAYROLL DETAILS & SALARY SLIP */}
-          {activeFormTab === 'payroll' && (
+          {/* NEW TAB: SALARY BREAKUP */}
+          {activeFormTab === 'salary_breakup' && (
             <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="bg-slate-100 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4 mb-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-violet-500" /> CTC & Salary Breakup
+                  </h4>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      const ctc = Number(String(newEmp.joiningSalary).replace(/[^0-9.]/g, '')) || 0;
+                      setNewEmp(prev => ({
+                        ...prev,
+                        salaryBreakup: {
+                          ...prev.salaryBreakup,
+                          basic: Math.round(ctc * 0.7),
+                          hra: Math.round(ctc * 0.3),
+                          pf: Math.round(ctc * 0.7 * 0.12),
+                          specialAllowance: 0
+                        }
+                      }));
+                      triggerToast("Defaults auto-calculated from CTC!");
+                    }}
+                    className="text-[10px] font-bold bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 px-2 py-1 rounded-lg hover:bg-violet-200 dark:hover:bg-violet-900/50 transition"
+                  >
+                    Auto Calculate Defaults
+                  </button>
+                </div>
+                
                 <div>
-                  <label className="block mb-1 text-slate-500">Offered Annual Salary</label>
+                  <label className="block mb-1 text-slate-500 font-semibold text-xs">Total Annual CTC</label>
                   <input 
                     type="text" 
                     value={newEmp.joiningSalary}
                     onChange={e => setNewEmp({...newEmp, joiningSalary: e.target.value})}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-800 dark:text-slate-200 focus:outline-hidden"
-                    placeholder="e.g. $95,000 / year"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-800 dark:text-slate-200 focus:outline-hidden font-bold"
+                    placeholder="e.g. 1200000"
                   />
                 </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block mb-1 text-slate-500 text-xs">Basic Salary</label>
+                    <input type="number" value={newEmp.salaryBreakup?.basic || ''} onChange={e => setNewEmp({...newEmp, salaryBreakup: {...newEmp.salaryBreakup, basic: e.target.value}})} className="w-full px-3 py-1.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-hidden" />
+                  </div>
+                  <div>
+                    <label className="block mb-1 text-slate-500 text-xs">HRA</label>
+                    <input type="number" value={newEmp.salaryBreakup?.hra || ''} onChange={e => setNewEmp({...newEmp, salaryBreakup: {...newEmp.salaryBreakup, hra: e.target.value}})} className="w-full px-3 py-1.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-hidden" />
+                  </div>
+                  <div>
+                    <label className="block mb-1 text-slate-500 text-xs">PF Deduction</label>
+                    <input type="number" value={newEmp.salaryBreakup?.pf || ''} onChange={e => setNewEmp({...newEmp, salaryBreakup: {...newEmp.salaryBreakup, pf: e.target.value}})} className="w-full px-3 py-1.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-hidden" />
+                  </div>
+                  <div>
+                    <label className="block mb-1 text-slate-500 text-xs">Special Allowance</label>
+                    <input type="number" value={newEmp.salaryBreakup?.specialAllowance || ''} onChange={e => setNewEmp({...newEmp, salaryBreakup: {...newEmp.salaryBreakup, specialAllowance: e.target.value}})} className="w-full px-3 py-1.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-hidden" />
+                  </div>
+                </div>
+
+                {/* Custom Fields */}
+                <div className="space-y-2 mt-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-500">Custom Components</span>
+                    <button 
+                      type="button"
+                      onClick={() => setNewEmp(prev => ({...prev, salaryBreakup: {...prev.salaryBreakup, customFields: [...(prev.salaryBreakup?.customFields || []), { key: '', value: 0 }]}}))}
+                      className="text-[10px] flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-bold hover:text-indigo-800"
+                    >
+                      <Plus className="w-3 h-3" /> Add Component
+                    </button>
+                  </div>
+                  {newEmp.salaryBreakup?.customFields?.map((fld, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <input type="text" placeholder="Component Name (e.g. LTA)" value={fld.key} onChange={e => {
+                        const arr = [...(newEmp.salaryBreakup.customFields || [])];
+                        arr[idx].key = e.target.value;
+                        setNewEmp(prev => ({...prev, salaryBreakup: {...prev.salaryBreakup, customFields: arr}}));
+                      }} className="w-1/2 px-2 py-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs" />
+                      <input type="number" placeholder="Amount" value={fld.value} onChange={e => {
+                        const arr = [...(newEmp.salaryBreakup.customFields || [])];
+                        arr[idx].value = e.target.value;
+                        setNewEmp(prev => ({...prev, salaryBreakup: {...prev.salaryBreakup, customFields: arr}}));
+                      }} className="flex-1 px-2 py-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs" />
+                      <button type="button" onClick={() => {
+                        const arr = [...(newEmp.salaryBreakup.customFields || [])];
+                        arr.splice(idx, 1);
+                        setNewEmp(prev => ({...prev, salaryBreakup: {...prev.salaryBreakup, customFields: arr}}));
+                      }} className="p-1 text-rose-500 hover:bg-rose-50 rounded-lg">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: PAYROLL DETAILS & SALARY SLIP */}
+          {activeFormTab === 'payroll' && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label className="block mb-1 text-slate-500">Bank Partner Name</label>
                   <input 
