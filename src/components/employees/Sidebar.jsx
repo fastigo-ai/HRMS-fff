@@ -9,7 +9,8 @@ import {
   Bell,
   Settings as SettingsIcon,
   Plus,
-  X
+  X,
+  Briefcase
 } from 'lucide-react';
 
 export default function Sidebar({
@@ -21,18 +22,36 @@ export default function Sidebar({
   profileData
 }) {
 
-  const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'profile', label: 'Profile', icon: User },
-    { id: 'attendance', label: 'Attendance', icon: Clock },
-    { id: 'leaves', label: 'Leaves', icon: CalendarDays },
-    { id: 'holidays', label: 'Holiday Calendar', icon: CalendarDays },
-    { id: 'payroll', label: 'Payroll', icon: IndianRupee },
-    { id: 'tasks', label: 'Tasks', icon: CheckSquare },
-    { id: 'notifications', label: 'Notifications', icon: Bell, badgeCount: unreadNotificationsCount },
-    { id: 'settings', label: 'Settings', icon: SettingsIcon },
-    { id: 'company-details', label: 'Company Settings', icon: SettingsIcon },
-  ];
+  const isSalesRole = profileData?.role === 'salesperson' || 
+                      profileData?.position?.toLowerCase().includes('sale') ||
+                      profileData?.department?.toLowerCase().includes('sale') ||
+                      profileData?.role === 'manager' || 
+                      profileData?.role === 'hr_admin';
+
+  let menuItems = [];
+
+  if (profileData?.role === 'salesperson') {
+    menuItems = [
+      { id: 'sales-crm', label: 'Sales CRM', icon: Briefcase },
+      { id: 'profile', label: 'Profile', icon: User },
+      { id: 'notifications', label: 'Notifications', icon: Bell, badgeCount: unreadNotificationsCount },
+      { id: 'settings', label: 'Settings', icon: SettingsIcon },
+    ];
+  } else {
+    menuItems = [
+      { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { id: 'profile', label: 'Profile', icon: User },
+      { id: 'attendance', label: 'Attendance', icon: Clock },
+      { id: 'leaves', label: 'Leaves', icon: CalendarDays },
+      { id: 'holidays', label: 'Holiday Calendar', icon: CalendarDays },
+      { id: 'payroll', label: 'Payroll', icon: IndianRupee },
+      { id: 'tasks', label: 'Tasks', icon: CheckSquare },
+      ...(isSalesRole ? [{ id: 'sales-crm', label: 'Sales CRM', icon: Briefcase }] : []),
+      { id: 'notifications', label: 'Notifications', icon: Bell, badgeCount: unreadNotificationsCount },
+      { id: 'settings', label: 'Settings', icon: SettingsIcon },
+      { id: 'company-details', label: 'Company Settings', icon: SettingsIcon },
+    ];
+  }
 
   return (
     <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-slate-200 dark:bg-slate-950 dark:border-slate-800 transform ${

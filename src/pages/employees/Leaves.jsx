@@ -20,6 +20,20 @@ export default function Leaves({
   const [activeViewTab, setActiveViewTab] = useState('planner'); // planner | holidays
   const [liveHolidays, setLiveHolidays] = useState([]);
 
+  const today = new Date();
+  const [viewYear, setViewYear] = useState(today.getFullYear());
+  const [viewMonth, setViewMonth] = useState(today.getMonth());
+
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
+    else setViewMonth(m => m - 1);
+  };
+  
+  const nextMonth = () => {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
+    else setViewMonth(m => m + 1);
+  };
+
   useEffect(() => {
     const fetchHols = async () => {
       try {
@@ -142,30 +156,53 @@ export default function Leaves({
     );
   };
 
-  // hardcoded calendar days matching October 2023 from Screenshot 3
-  const leaveCalendarDays = [
-    { day: 24, currentMonth: false },
-    { day: 25, currentMonth: false },
-    { day: 26, currentMonth: false },
-    { day: 27, currentMonth: false },
-    { day: 28, currentMonth: false },
-    { day: 29, currentMonth: false },
-    { day: 30, currentMonth: false },
-    { day: 1, currentMonth: true },
-    { day: 2, currentMonth: true },
-    { day: 3, currentMonth: true, type: 'wfh_approved', label: 'WFH Approved' },
-    { day: 4, currentMonth: true },
-    { day: 5, currentMonth: true },
-    { day: 6, currentMonth: true },
-    { day: 7, currentMonth: true },
-    { day: 8, currentMonth: true },
-    { day: 9, currentMonth: true },
-    { day: 10, currentMonth: true },
-    { day: 11, currentMonth: true, type: 'annual_leave', label: 'Annual Leave' },
-    { day: 12, currentMonth: true, type: 'annual_leave', label: 'Annual Leave' },
-    { day: 13, currentMonth: true },
-    { day: 14, currentMonth: true },
-  ];
+  const leaveCalendarDays = React.useMemo(() => {
+    const firstDay = new Date(viewYear, viewMonth, 1).getDay(); // 0 = Sun
+    const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+    const prevMonthDays = new Date(viewYear, viewMonth, 0).getDate();
+    
+    const cells = [];
+    
+    for (let i = firstDay - 1; i >= 0; i--) {
+      cells.push({ day: prevMonthDays - i, currentMonth: false });
+    }
+    
+    for (let d = 1; d <= daysInMonth; d++) {
+      let type = null;
+      let label = null;
+      
+      if (leaveHistory && leaveHistory.length > 0) {
+        const currentDate = new Date(viewYear, viewMonth, d);
+        currentDate.setHours(0,0,0,0);
+        
+        for (const req of leaveHistory) {
+          if (req.status === 'Approved') {
+            const start = new Date(req.startDate); start.setHours(0,0,0,0);
+            const end = new Date(req.endDate); end.setHours(0,0,0,0);
+            if (currentDate >= start && currentDate <= end) {
+              if (req.type === 'Sick Leave') { type = 'sick_leave'; label = 'Sick Leave'; }
+              else if (req.type === 'Casual Leave') { type = 'casual_leave'; label = 'Casual Leave'; }
+              else if (req.type === 'Paid Leave') { type = 'paid_leave'; label = 'Paid Leave'; }
+              else { type = 'annual_leave'; label = 'Annual Leave'; }
+              break;
+            }
+          }
+        }
+      }
+      cells.push({ day: d, currentMonth: true, type, label });
+    }
+    
+    const remainder = cells.length % 7;
+    const nextDaysNeeded = remainder === 0 ? 0 : 7 - remainder;
+    
+    for (let d = 1; d <= nextDaysNeeded; d++) {
+      cells.push({ day: d, currentMonth: false });
+    }
+    
+    return cells;
+  }, [viewYear, viewMonth, leaveHistory]);
+
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
   return (
     <div className="space-y-6">
@@ -250,16 +287,16 @@ export default function Leaves({
                 {/* Navigator controls */}
                 <div className="flex items-center border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm shrink-0">
                   <button 
-                    onClick={() => triggerToast('Rollback leave calendar')}
+                    onClick={prevMonth}
                     className="p-1.5 text-slate-500 hover:bg-slate-55 hover:bg-slate-100 dark:hover:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
                   <span className="px-3 text-xs font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-950">
-                    October 2023
+                    {monthNames[viewMonth]} {viewYear}
                   </span>
                   <button 
-                    onClick={() => triggerToast('Advance leave calendar')}
+                    onClick={nextMonth}
                     className="p-1.5 text-slate-500 hover:bg-slate-55 hover:bg-slate-100 dark:hover:bg-slate-900 border-l border-slate-200 dark:border-slate-800 transition"
                   >
                     <ChevronRight className="w-4 h-4" />
@@ -293,17 +330,30 @@ export default function Leaves({
                       <div key={idx} className={cellClass}>
                         <span className={textClass}>{cell.day}</span>
                         
-                        {/* WFH Approved block in light blue/grey with blue text */}
+                        {/* Different leave blocks based on type */}
                         {cell.type === 'wfh_approved' && (
                           <div className="bg-sky-50 dark:bg-sky-950/40 p-1 rounded border border-sky-100 dark:border-sky-900/80 text-[7px] font-extrabold text-sky-700 dark:text-sky-300 leading-none truncate">
-                            WFH Approved
+                            {cell.label}
                           </div>
                         )}
-
-                        {/* Annual Leave block in dark blue/indigo with white text */}
+                        {cell.type === 'sick_leave' && (
+                          <div className="bg-rose-50 dark:bg-rose-950/40 p-1 rounded border border-rose-100 dark:border-rose-900/80 text-[7px] font-extrabold text-rose-700 dark:text-rose-300 leading-none truncate">
+                            {cell.label}
+                          </div>
+                        )}
+                        {cell.type === 'casual_leave' && (
+                          <div className="bg-sky-50 dark:bg-sky-950/40 p-1 rounded border border-sky-100 dark:border-sky-900/80 text-[7px] font-extrabold text-sky-700 dark:text-sky-300 leading-none truncate">
+                            {cell.label}
+                          </div>
+                        )}
+                        {cell.type === 'paid_leave' && (
+                          <div className="bg-indigo-600 p-1 rounded border border-indigo-700 text-[7px] font-extrabold text-white leading-none truncate">
+                            {cell.label}
+                          </div>
+                        )}
                         {cell.type === 'annual_leave' && (
                           <div className="bg-indigo-600 p-1 rounded border border-indigo-700 text-[7px] font-extrabold text-white leading-none truncate">
-                            Annual Leave
+                            {cell.label}
                           </div>
                         )}
                       </div>

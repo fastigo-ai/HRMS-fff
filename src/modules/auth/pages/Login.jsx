@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../../../store/authStore';
 import { useUiStore } from '../../../store/uiStore';
-import { Mail, Lock, Shield, ArrowRight, User, Users, Briefcase } from 'lucide-react';
+import { Mail, Lock, Shield, ArrowRight, User, Users, Briefcase, Loader2 } from 'lucide-react';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -188,8 +188,17 @@ export default function Login() {
                 disabled={loading}
                 className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-2xl transition flex items-center justify-center gap-2 group hover:scale-[1.01] shadow-md shadow-indigo-600/10 cursor-pointer disabled:opacity-50"
               >
-                {loading ? 'Validating Token Parameters...' : 'Access Dashboard Session'}
-                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Validating Token Parameters...
+                  </>
+                ) : (
+                  <>
+                    Access Dashboard Session
+                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  </>
+                )}
               </button>
             </form>
 

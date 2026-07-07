@@ -112,6 +112,25 @@ const defaultUsers = [
       panNumber: 'AAAPJ9082F',
       ifscCode: 'SVCB0008842'
     }
+  },
+  {
+    name: 'Michael Smith',
+    email: 'sales@Fastigo.com',
+    password: 'password123',
+    role: 'sales_executive',
+    position: 'Sales Executive',
+    department: 'Sales',
+    empId: 'WS-50102',
+    joinDate: 'Feb 10, 2024',
+    phone: '+1 (555) 777-8888',
+    address: '100 Market St, San Francisco, CA 94105',
+    skills: ['Lead Generation', 'B2B Sales', 'Negotiation', 'CRM Software'],
+    bankDetails: {
+      bankName: 'Bank of America',
+      accountNo: '•••• •••• 5010',
+      panNumber: 'SALES5010S',
+      ifscCode: 'BOFA0005010'
+    }
   }
 ];
 

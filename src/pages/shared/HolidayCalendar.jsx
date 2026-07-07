@@ -59,11 +59,21 @@ export default function HolidayCalendar({ canEdit = false, triggerToast }) {
     return cells;
   }, [viewYear, viewMonth]);
 
+  // Helper to parse "YYYY-MM-DD" accurately into local timezone date
+  const parseDateStr = (dateStr) => {
+    if (!dateStr) return new Date();
+    const parts = dateStr.split('T')[0].split('-');
+    if (parts.length === 3) {
+      return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    }
+    return new Date(dateStr);
+  };
+
   // Build a set of holiday date strings for this month for O(1) lookup
   const holidayMap = useMemo(() => {
     const map = {};
     holidays.forEach(h => {
-      const hDate = new Date(h.date);
+      const hDate = parseDateStr(h.date);
       const key = `${hDate.getFullYear()}-${hDate.getMonth()}-${hDate.getDate()}`;
       map[key] = h;
     });
@@ -101,11 +111,19 @@ export default function HolidayCalendar({ canEdit = false, triggerToast }) {
           : filterType === 'optional' ? h.isOptional : !h.isOptional;
         return matchSearch && matchType;
       })
-      .sort((a, b) => new Date(a.date) - new Date(b.date));
+      .sort((a, b) => parseDateStr(a.date) - parseDateStr(b.date));
   }, [holidays, searchQuery, filterType]);
 
-  const upcomingHolidays = filteredHolidays.filter(h => new Date(h.date) >= today);
-  const pastHolidays    = filteredHolidays.filter(h => new Date(h.date) < today);
+  const upcomingHolidays = filteredHolidays.filter(h => {
+    const hDate = parseDateStr(h.date);
+    const currDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    return hDate >= currDate;
+  });
+  const pastHolidays    = filteredHolidays.filter(h => {
+    const hDate = parseDateStr(h.date);
+    const currDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    return hDate < currDate;
+  });
 
   // ─── Add holiday ───────────────────────────────────────────────────────────
   const handleAdd = async (e) => {
@@ -144,12 +162,14 @@ export default function HolidayCalendar({ canEdit = false, triggerToast }) {
 
   // ─── Format helpers ────────────────────────────────────────────────────────
   const fmtDate = (dateStr) => {
-    const d = new Date(dateStr);
+    const d = parseDateStr(dateStr);
     return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   const daysUntil = (dateStr) => {
-    const diff = Math.ceil((new Date(dateStr) - today) / 86400000);
+    const targetDate = parseDateStr(dateStr);
+    const currentDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const diff = Math.round((targetDate - currentDate) / 86400000);
     if (diff === 0) return 'Today!';
     if (diff === 1) return 'Tomorrow';
     if (diff < 0) return `${Math.abs(diff)}d ago`;

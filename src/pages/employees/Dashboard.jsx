@@ -373,7 +373,7 @@ export default function Dashboard({
   return (
     <div className="space-y-6">
       {/* Dynamic Segmented Portal Header */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-white dark:bg-slate-950 p-4 rounded-2xl border border-slate-150 dark:border-slate-850 shadow-sm gap-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-white dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm gap-4">
         <div>
           <h2 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
             <LayoutDashboard className="w-5.5 h-5.5 text-indigo-500" />
@@ -384,10 +384,10 @@ export default function Dashboard({
           </p>
         </div>
 
-        <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl w-fit shrink-0 self-start sm:self-auto border border-slate-200 dark:border-slate-850">
+        <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl w-full sm:w-fit shrink-0 border border-slate-200 dark:border-slate-850">
           <button
             onClick={() => setActivePortal("hr")}
-            className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${activePortal === "hr" ? "bg-white dark:bg-slate-950 text-slate-900 dark:text-white shadow-xs" : "text-slate-400"}`}
+            className={`flex-1 sm:flex-none justify-center px-4 py-2 text-xs font-bold rounded-lg transition-all ${activePortal === "hr" ? "bg-white dark:bg-slate-950 text-slate-900 dark:text-white shadow-xs" : "text-slate-400"}`}
           >
             HR & Ops Portal
           </button>
@@ -396,7 +396,7 @@ export default function Dashboard({
               setActivePortal("sales");
               triggerToast("Sales Performance Portal synced!");
             }}
-            className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${activePortal === "sales" ? "bg-white dark:bg-slate-950 text-slate-900 dark:text-white shadow-xs" : "text-slate-400"}`}
+            className={`flex-1 sm:flex-none justify-center px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${activePortal === "sales" ? "bg-white dark:bg-slate-950 text-slate-900 dark:text-white shadow-xs" : "text-slate-400"}`}
           >
             Sales CRM Hub
             <span className="w-2 h-2 rounded-full bg-indigo-500 inline-block animate-ping"></span>
@@ -490,7 +490,7 @@ export default function Dashboard({
 
           {/* Grid Quick Indicators */}
           {/* Grid Quick Indicators */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
             {/* Card 1: Clock state */}
             <div className="glass-panel p-5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-950 flex flex-col justify-between shadow-sm">
               <div className="flex items-center justify-between mb-4">
@@ -657,7 +657,7 @@ export default function Dashboard({
           </div>
 
           {/* Main Grid: announcements + upcoming holidays */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* Announcements list */}
             <div className="lg:col-span-2 glass-panel p-6 rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm">
               <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-900">

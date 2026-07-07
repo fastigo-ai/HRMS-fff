@@ -34,6 +34,7 @@ export default function HRSidebar({
     { id: 'hr-recruitment', label: 'Recruitment', icon: Briefcase },
     { id: 'hr-sales-audit', label: 'Sales Audit', icon: BarChart3 },
     { id: 'hr-reports', label: 'Reports', icon: BarChart3 },
+    { id: 'hr-wfh-request', label: 'WFH Request', icon: CalendarDays },
     { id: 'hr-company-details', label: 'Company Settings', icon: Settings }
   ];
 

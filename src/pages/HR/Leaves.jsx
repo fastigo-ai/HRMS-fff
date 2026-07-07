@@ -36,6 +36,46 @@ export default function HRLeaves({
   const [activeTab, setActiveTab] = useState('requests');
   const { leaveBalances, leaveHistory, applyLeave, fetchEmployeeData } = useEmployeeStore();
 
+  const today = new Date();
+  const [viewYear, setViewYear] = useState(today.getFullYear());
+  const [viewMonth, setViewMonth] = useState(today.getMonth());
+
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
+    else setViewMonth(m => m - 1);
+  };
+  
+  const nextMonth = () => {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
+    else setViewMonth(m => m + 1);
+  };
+
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+  const teamAvailabilityDays = React.useMemo(() => {
+    let firstDay = new Date(viewYear, viewMonth, 1).getDay();
+    firstDay = firstDay === 0 ? 6 : firstDay - 1; // 0=Mon, 6=Sun
+    const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+    
+    const cells = [];
+    for (let i = 0; i < firstDay; i++) {
+      cells.push({ empty: true });
+    }
+    
+    for (let d = 1; d <= daysInMonth; d++) {
+      let status = 'none';
+      const isToday = new Date().getFullYear() === viewYear && 
+                      new Date().getMonth() === viewMonth && 
+                      new Date().getDate() === d;
+      
+      if (isToday) {
+        status = 'today';
+      }
+      cells.push({ day: d, status, empty: false });
+    }
+    return cells;
+  }, [viewYear, viewMonth]);
+
   useEffect(() => {
     if (activeTab === 'apply-leave') {
       fetchEmployeeData();
@@ -416,9 +456,9 @@ export default function HRLeaves({
                   <h3 className="text-xs font-extrabold text-slate-800 dark:text-white">Team Availability</h3>
                   
                   <div className="flex items-center gap-2">
-                    <button className="p-1 text-slate-400 hover:text-slate-600"><ChevronLeft className="w-4 h-4" /></button>
-                    <span className="text-[10px] font-extrabold text-slate-700 dark:text-slate-300">October 2023</span>
-                    <button className="p-1 text-slate-400 hover:text-slate-600"><ChevronRight className="w-4 h-4" /></button>
+                    <button onClick={prevMonth} className="p-1 text-slate-400 hover:text-slate-600"><ChevronLeft className="w-4 h-4" /></button>
+                    <span className="text-[10px] font-extrabold text-slate-700 dark:text-slate-300">{monthNames[viewMonth]} {viewYear}</span>
+                    <button onClick={nextMonth} className="p-1 text-slate-400 hover:text-slate-600"><ChevronRight className="w-4 h-4" /></button>
                   </div>
                 </div>
 
@@ -427,42 +467,23 @@ export default function HRLeaves({
                   <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
                 </div>
 
-                {/* Days Calendar grid October 2023 */}
+                {/* Days Calendar grid */}
                 <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold text-slate-700 dark:text-slate-300">
-                  <span className="py-1">1</span>
-                  <span className="py-1">2</span>
-                  {/* Oct 3: Pending request */}
-                  <span className="py-1 bg-indigo-50/60 text-indigo-650 border border-indigo-200/50 rounded-lg dark:bg-indigo-950/20">3</span>
-                  <span className="py-1">4</span>
-                  <span className="py-1">5</span>
-                  <span className="py-1">6</span>
-                  <span className="py-1">7</span>
-                  {/* Oct 8: Today */}
-                  <span className="py-1 bg-indigo-600 text-white rounded-lg shadow-sm">8</span>
-                  <span className="py-1">9</span>
-                  <span className="py-1">10</span>
-                  <span className="py-1">11</span>
-                  {/* Oct 12, 13, 14, 15: Out */}
-                  <span className="py-1 bg-orange-50/80 text-orange-600 border border-orange-200/40 rounded-lg dark:bg-orange-950/20">12</span>
-                  <span className="py-1 bg-orange-50/80 text-orange-600 border border-orange-200/40 rounded-lg dark:bg-orange-950/20">13</span>
-                  <span className="py-1 bg-orange-50/80 text-orange-600 border border-orange-200/40 rounded-lg dark:bg-orange-950/20">14</span>
-                  <span className="py-1 bg-orange-50/80 text-orange-600 border border-orange-200/40 rounded-lg dark:bg-orange-950/20">15</span>
-                  <span className="py-1">16</span>
-                  <span className="py-1">17</span>
-                  <span className="py-1">18</span>
-                  <span className="py-1">19</span>
-                  <span className="py-1">20</span>
-                  <span className="py-1">21</span>
-                  <span className="py-1">22</span>
-                  <span className="py-1">23</span>
-                  <span className="py-1">24</span>
-                  <span className="py-1">25</span>
-                  <span className="py-1">26</span>
-                  <span className="py-1">27</span>
-                  <span className="py-1">28</span>
-                  <span className="py-1">29</span>
-                  <span className="py-1">30</span>
-                  <span className="py-1">31</span>
+                  {teamAvailabilityDays.map((cell, idx) => {
+                    if (cell.empty) {
+                      return <span key={`empty-${idx}`} className="py-1"></span>;
+                    }
+                    if (cell.status === 'today') {
+                      return <span key={idx} className="py-1 bg-indigo-600 text-white rounded-lg shadow-sm">{cell.day}</span>;
+                    }
+                    if (cell.status === 'pending') {
+                      return <span key={idx} className="py-1 bg-indigo-50/60 text-indigo-650 border border-indigo-200/50 rounded-lg dark:bg-indigo-950/20">{cell.day}</span>;
+                    }
+                    if (cell.status === 'out') {
+                      return <span key={idx} className="py-1 bg-orange-50/80 text-orange-600 border border-orange-200/40 rounded-lg dark:bg-orange-950/20">{cell.day}</span>;
+                    }
+                    return <span key={idx} className="py-1">{cell.day}</span>;
+                  })}
                 </div>
 
                 {/* Legend indicators */}

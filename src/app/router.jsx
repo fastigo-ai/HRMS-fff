@@ -43,6 +43,7 @@ const LazyEmployeePayroll = lazyWithRetry(() => import('../modules/employee/page
 const LazyEmployeeTasks = lazyWithRetry(() => import('../modules/employee/pages/Tasks'));
 const LazyEmployeeNotifications = lazyWithRetry(() => import('../modules/employee/pages/Notifications'));
 const LazyEmployeeSettings = lazyWithRetry(() => import('../modules/employee/pages/Settings'));
+const LazyEmployeeSalesCRM = lazyWithRetry(() => import('../modules/employee/pages/SalesCRM'));
 
 const LazyHRDashboard = lazyWithRetry(() => import('../modules/hr/pages/Dashboard'));
 const LazyHREmployees = lazyWithRetry(() => import('../modules/hr/pages/Employees'));
@@ -86,6 +87,7 @@ function RootRedirection() {
   
   if (userRole === 'hr_admin') return <Navigate to="/hr/dashboard" replace />;
   if (userRole === 'manager') return <Navigate to="/manager/dashboard" replace />;
+  if (userRole === 'salesperson') return <Navigate to="/employee/sales-crm" replace />;
   return <Navigate to="/employee/dashboard" replace />;
 }
 
@@ -96,6 +98,7 @@ function AuthGate({ children }) {
   if (isAuthenticated) {
     if (userRole === 'hr_admin') return <Navigate to="/hr/dashboard" replace />;
     if (userRole === 'manager') return <Navigate to="/manager/dashboard" replace />;
+    if (userRole === 'salesperson') return <Navigate to="/employee/sales-crm" replace />;
     return <Navigate to="/employee/dashboard" replace />;
   }
 
@@ -119,7 +122,7 @@ export const appRouter = createBrowserRouter([
     path: '/employee',
     element: (
       <ProtectedRoute>
-        <RoleGuard allowedRoles={['standard_employee', 'employee', 'hr_admin', 'manager']}>
+        <RoleGuard allowedRoles={['standard_employee', 'employee', 'hr_admin', 'manager', 'salesperson']}>
           <EmployeeLayout />
         </RoleGuard>
       </ProtectedRoute>
@@ -136,7 +139,8 @@ export const appRouter = createBrowserRouter([
       { path: 'notifications', element: <PageSuspense><LazyEmployeeNotifications /></PageSuspense> },
       { path: 'settings', element: <PageSuspense><LazyEmployeeSettings /></PageSuspense> },
       { path: 'holidays', element: <PageSuspense><LazyEmployeeHolidays /></PageSuspense> },
-      { path: 'company-details', element: <PageSuspense><LazyHRCompanyDetails /></PageSuspense> }
+      { path: 'company-details', element: <PageSuspense><LazyHRCompanyDetails /></PageSuspense> },
+      { path: 'sales-crm', element: <PageSuspense><LazyEmployeeSalesCRM /></PageSuspense> }
     ]
   },
   {

@@ -650,6 +650,7 @@ export default function EmployeesPage() {
                   <option value="Engineering">Engineering</option>
                   <option value="Experience Design">Design</option>
                   <option value="Marketing">Marketing</option>
+                  <option value="Sales">Sales</option>
                   <option value="Executive Management">Management</option>
                 </select>
               </div>
@@ -1565,6 +1566,7 @@ export default function EmployeesPage() {
                   <option value="Engineering">Engineering</option>
                   <option value="Experience Design">Design</option>
                   <option value="Marketing">Marketing</option>
+                  <option value="Sales">Sales</option>
                   <option value="Executive Management">Management</option>
                 </select>
               </div>
@@ -1849,6 +1851,7 @@ export default function EmployeesPage() {
                     <option value="Engineering">Engineering</option>
                     <option value="Experience Design">Design</option>
                     <option value="Marketing">Marketing</option>
+                    <option value="Sales">Sales</option>
                     <option value="Executive Management">Management</option>
                   </select>
                 </div>
@@ -1862,6 +1865,7 @@ export default function EmployeesPage() {
                     <option value="standard_employee">Regular Employee</option>
                     <option value="manager">Project Manager</option>
                     <option value="hr_admin">HR Administrator</option>
+                    <option value="salesperson">Salesperson</option>
                   </select>
                 </div>
               </div>
