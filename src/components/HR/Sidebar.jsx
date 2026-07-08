@@ -23,7 +23,7 @@ export default function HRSidebar({
 }) {
   const { profileData } = useAuthStore();
 
-  const menuItems = [
+  let menuItems = [
     { id: 'hr-dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'hr-employees', label: 'Employees', icon: User },
     { id: 'hr-departments', label: 'Departments', icon: FolderKanban },
@@ -37,6 +37,12 @@ export default function HRSidebar({
     { id: 'hr-wfh-request', label: 'WFH Request', icon: CalendarDays },
     { id: 'hr-company-details', label: 'Company Settings', icon: Settings }
   ];
+
+  if (profileData?.role === 'salesperson') {
+    menuItems = menuItems.filter(item => 
+      !['hr-employees', 'hr-departments', 'hr-recruitment', 'hr-reports'].includes(item.id)
+    );
+  }
 
   return (
     <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-slate-200 dark:bg-slate-950 dark:border-slate-800 transform ${
