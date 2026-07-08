@@ -222,6 +222,18 @@ export const hrService = {
     });
 
     const cells = [];
+
+    // Assuming calendar starts on Monday
+    const firstDayOfMonth = new Date(year, month, 1).getDay();
+    const padding = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
+    for (let i = 0; i < padding; i++) {
+      cells.push({
+        day: '',
+        val: 0,
+        status: 'none'
+      });
+    }
+
     for (let d = 1; d <= daysInMonth; d++) {
       const dayStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       const presentCount = logsByDate[dayStr] || 0;

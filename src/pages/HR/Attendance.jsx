@@ -331,9 +331,9 @@ export default function HRAttendance({
               {calendarDays.map((day, idx) => (
                 <div 
                   key={idx} 
-                  className={`h-11 rounded-xl flex items-center justify-center text-xs font-bold cursor-pointer transition ${getHeatmapColor(day.status)} hover:scale-105`}
-                  title={`Day ${day.day}: ${day.val}% compliance`}
-                  onClick={() => triggerToast(`Audited statistics details for Day ${day.day}`)}
+                  className={`h-11 rounded-xl flex items-center justify-center text-xs font-bold transition ${day.day ? 'cursor-pointer hover:scale-105 ' + getHeatmapColor(day.status) : ''}`}
+                  title={day.day ? `Day ${day.day}: ${day.val}% compliance` : undefined}
+                  onClick={() => day.day && triggerToast(`Audited statistics details for Day ${day.day}`)}
                 >
                   {day.day}
                 </div>
