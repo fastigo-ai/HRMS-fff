@@ -25,10 +25,13 @@ export default function HRSidebar({
 
   const menuItems = [
     { id: 'hr-dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'hr-employees', label: 'Employees', icon: User },
+    { id: 'hr-departments', label: 'Departments', icon: FolderKanban },
     { id: 'hr-attendance', label: 'Attendance', icon: Clock },
     { id: 'hr-leaves', label: 'Leaves', icon: CalendarDays },
     { id: 'hr-holidays', label: 'Holiday Calendar', icon: CalendarDays },
     { id: 'hr-payroll', label: 'Payroll', icon: IndianRupee },
+    { id: 'hr-recruitment', label: 'Recruitment', icon: Briefcase },
     { id: 'hr-sales-audit', label: 'Sales Audit', icon: BarChart3 },
     { id: 'hr-reports', label: 'Reports', icon: BarChart3 },
     { id: 'hr-wfh-request', label: 'WFH Request', icon: CalendarDays },
