@@ -11,7 +11,8 @@ import {
   FileSpreadsheet, 
   Eye, 
   Printer, 
-  X 
+  X,
+  Edit2
 } from 'lucide-react';
 import DataTable from '../../shared/ui/DataTable';
 import StatusBadge from '../../shared/ui/StatusBadge';
@@ -562,6 +563,26 @@ export default function Payroll({ triggerToast, hrEmployees = [] }) {
     }
   };
 
+  const handleDeleteSlip = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this payslip?")) return;
+    try {
+      await DatabaseService.deletePayslip(id);
+      triggerToast("Payslip deleted successfully");
+      fetchLedger();
+    } catch (err) {
+      triggerToast(err.message || "Failed to delete payslip", "error");
+    }
+  };
+
+  const handleEditSlip = (row) => {
+    setSelectedEmpId(row.employee?._id || row.employee?.id);
+    setPayPeriod(row.period);
+    setCustomEarnings(row.customEarnings || []);
+    setCustomDeductions(row.customDeductions || []);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    triggerToast("Form populated. Edit and regenerate to update the payslip.");
+  };
+
   // DataTable columns for Disbursement Ledger
   const columns = [
     { 
@@ -607,10 +628,24 @@ export default function Payroll({ triggerToast, hrEmployees = [] }) {
         <div className="flex justify-end gap-1.5">
           <button 
             onClick={() => setSelectedSlip(row)}
-            className="p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-650 text-[10px] font-bold rounded-lg transition"
+            className="p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-[10px] font-bold rounded-lg transition"
             title="Audit Printable Slip"
           >
             <Eye className="w-3.5 h-3.5" />
+          </button>
+          <button 
+            onClick={() => handleEditSlip(row)}
+            className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 text-[10px] font-bold rounded-lg transition"
+            title="Edit Payslip"
+          >
+            <Edit2 className="w-3.5 h-3.5" />
+          </button>
+          <button 
+            onClick={() => handleDeleteSlip(id)}
+            className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 text-[10px] font-bold rounded-lg transition"
+            title="Delete Payslip"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
       )

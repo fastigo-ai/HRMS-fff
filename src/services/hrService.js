@@ -265,6 +265,54 @@ export const hrService = {
     };
   },
 
+  createAttendance: async (payload) => {
+    try {
+      const res = await authenticatedFetch(`${API_BASE_URL}/attendance`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      return data.data.attendance;
+    } catch (err) {
+      console.error("Failed to create attendance:", err);
+      throw err;
+    }
+  },
+
+  updateAttendance: async (id, payload) => {
+    try {
+      const res = await authenticatedFetch(`${API_BASE_URL}/attendance/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      return data.data.attendance;
+    } catch (err) {
+      console.error("Failed to update attendance:", err);
+      throw err;
+    }
+  },
+
+  deleteAttendance: async (id) => {
+    try {
+      const res = await authenticatedFetch(`${API_BASE_URL}/attendance/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message);
+      }
+      return true;
+    } catch (err) {
+      console.error("Failed to delete attendance:", err);
+      throw err;
+    }
+  },
+
   resolveAnomaly: async (id) => {
     await delay(200);
     const current = getCached('hr_anomalies', initialAnomalies);
@@ -602,6 +650,39 @@ export const hrService = {
       return data.data.payslip;
     } catch (err) {
       console.error("Failed to disburse payslip on backend:", err);
+      throw err;
+    }
+  },
+
+  updatePayslip: async (id, payload) => {
+    try {
+      const res = await authenticatedFetch(`${API_BASE_URL}/payroll/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to update payslip");
+      }
+      return data.data.payslip;
+    } catch (err) {
+      console.error("Failed to update payslip on backend:", err);
+      throw err;
+    }
+  },
+
+  deletePayslip: async (id) => {
+    try {
+      const res = await authenticatedFetch(`${API_BASE_URL}/payroll/${id}`, {
+        method: "DELETE"
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Failed to delete payslip");
+      }
+      return true;
+    } catch (err) {
+      console.error("Failed to delete payslip on backend:", err);
       throw err;
     }
   },

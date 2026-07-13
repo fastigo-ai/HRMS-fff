@@ -6,13 +6,16 @@ import {
   Filter,
   ArrowUpDown,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 import { DatabaseService, authenticatedFetch, API_BASE_URL } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import { useEmployeeStore } from '../../store/employeeStore';
 import EmployeeAttendance from '../employees/Attendance';
 import Modal from '../../shared/ui/Modal';
+import ManageAttendanceModal from './ManageAttendanceModal';
 
 export default function HRAttendance({
   triggerToast
@@ -25,7 +28,10 @@ export default function HRAttendance({
   const [loading, setLoading] = useState(true);
   const [visibleCount, setVisibleCount] = useState(10);
   const [allRawLogs, setAllRawLogs] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [selectedEmpForDetail, setSelectedEmpForDetail] = useState(null);
+  const [isManageModalOpen, setIsManageModalOpen] = useState(false);
+  const [editRecord, setEditRecord] = useState(null);
   const [overviewStats, setOverviewStats] = useState({
     presentToday: 0,
     lateToday: 0,
@@ -73,29 +79,34 @@ export default function HRAttendance({
   }, [activeTab, clockedIn]);
 
   // Load attendance data asynchronously
-  useEffect(() => {
-    const loadLogs = async () => {
-      try {
-        setLoading(true);
-        const data = await DatabaseService.getHRAttendanceLogs();
-        setCalendarDays(data.cells);
-        setAnomalies(data.anomalies);
-        setAuditLogs(data.records);
-        if (data.stats) {
-          setOverviewStats(data.stats);
-        }
-        const rawLogs = await DatabaseService.getHRAttendanceLogsAll();
-        setAllRawLogs(rawLogs);
-      } catch {
-        triggerToast('Failed to fetch attendance audits.', 'error');
-      } finally {
-        setLoading(false);
+  const loadLogs = async () => {
+    try {
+      setLoading(true);
+      const data = await DatabaseService.getHRAttendanceLogs();
+      setCalendarDays(data.cells);
+      setAnomalies(data.anomalies);
+      setAuditLogs(data.records);
+      if (data.stats) {
+        setOverviewStats(data.stats);
       }
-    };
+      const [rawLogs, emps] = await Promise.all([
+        DatabaseService.getHRAttendanceLogsAll(),
+        DatabaseService.getHREmployees()
+      ]);
+      setAllRawLogs(rawLogs);
+      setEmployees(emps);
+    } catch {
+      triggerToast('Failed to fetch attendance audits.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     if (activeTab === 'org') {
       loadLogs();
     }
-  }, [triggerToast, activeTab, clockedIn]);
+  }, [activeTab, clockedIn]);
 
   useEffect(() => {
     setVisibleCount(10);
@@ -201,10 +212,13 @@ export default function HRAttendance({
         
         <div className="flex items-center gap-3 shrink-0">
           <button 
-            onClick={() => triggerToast('Attendance Logs manual editor opened')}
+            onClick={() => {
+              setEditRecord(null);
+              setIsManageModalOpen(true);
+            }}
             className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold text-slate-650 bg-white border border-slate-200 dark:text-slate-300 dark:bg-slate-950 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900 shadow-sm transition"
           >
-            Edit Attendance
+            New Record
           </button>
           
           <button 
@@ -485,45 +499,88 @@ export default function HRAttendance({
 
                       {/* Action trigger */}
                       <td className="py-3.5 pl-4 text-right">
-                        <button 
-                          type="button"
-                          onClick={async (e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            
-                            try {
-                              // Fetch latest raw logs directly from server to show details without refresh
-                              const latestLogs = await DatabaseService.getHRAttendanceLogsAll();
-                              setAllRawLogs(latestLogs);
-                              const empLogs = latestLogs.filter(raw => {
-                                if (!raw.employee) return false;
-                                const empName = typeof raw.employee === 'object' ? raw.employee.name : null;
-                                return empName === log.name;
-                              });
+                        <div className="flex items-center justify-end gap-1">
+                          <button 
+                            type="button"
+                            title="Edit Record"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              const rawRecord = allRawLogs.find(r => r._id === log.id);
+                              if (rawRecord) {
+                                setEditRecord(rawRecord);
+                                setIsManageModalOpen(true);
+                              } else {
+                                triggerToast('Could not find raw record data', 'error');
+                              }
+                            }}
+                            className="p-1.5 text-slate-455 text-slate-400 hover:text-indigo-655 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          
+                          <button 
+                            type="button"
+                            title="Delete Record"
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (window.confirm("Are you sure you want to delete this attendance record?")) {
+                                try {
+                                  await DatabaseService.deleteAttendance(log.id);
+                                  triggerToast("Record deleted successfully");
+                                  loadLogs();
+                                } catch (err) {
+                                  triggerToast(err.message || "Failed to delete record", "error");
+                                }
+                              }
+                            }}
+                            className="p-1.5 text-slate-455 text-slate-400 hover:text-rose-655 hover:bg-rose-50 dark:hover:bg-rose-900 rounded-lg transition"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                          </button>
+
+                          <button 
+                            type="button"
+                            title="View Employee Logs"
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
                               
-                              setSelectedEmpForDetail({
-                                name: log.name,
-                                role: log.role,
-                                logs: empLogs
-                              });
-                            } catch {
-                              // Fallback to local logs
-                              const empLogs = allRawLogs.filter(raw => {
-                                if (!raw.employee) return false;
-                                const empName = typeof raw.employee === 'object' ? raw.employee.name : null;
-                                return empName === log.name;
-                              });
-                              setSelectedEmpForDetail({
-                                name: log.name,
-                                role: log.role,
-                                logs: empLogs
-                              });
-                            }
-                          }}
-                          className="p-1.5 text-slate-455 text-slate-400 hover:text-indigo-655 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition"
-                        >
-                          <MoreVertical className="w-4 h-4" />
-                        </button>
+                              try {
+                                // Fetch latest raw logs directly from server to show details without refresh
+                                const latestLogs = await DatabaseService.getHRAttendanceLogsAll();
+                                setAllRawLogs(latestLogs);
+                                const empLogs = latestLogs.filter(raw => {
+                                  if (!raw.employee) return false;
+                                  const empName = typeof raw.employee === 'object' ? raw.employee.name : null;
+                                  return empName === log.name;
+                                });
+                                
+                                setSelectedEmpForDetail({
+                                  name: log.name,
+                                  role: log.role,
+                                  logs: empLogs
+                                });
+                              } catch {
+                                // Fallback to local logs
+                                const empLogs = allRawLogs.filter(raw => {
+                                  if (!raw.employee) return false;
+                                  const empName = typeof raw.employee === 'object' ? raw.employee.name : null;
+                                  return empName === log.name;
+                                });
+                                setSelectedEmpForDetail({
+                                  name: log.name,
+                                  role: log.role,
+                                  logs: empLogs
+                                });
+                              }
+                            }}
+                            className="p-1.5 text-slate-455 text-slate-400 hover:text-indigo-655 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition"
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
 
                     </tr>
@@ -591,6 +648,18 @@ export default function HRAttendance({
           </div>
         )}
       </Modal>
+
+      <ManageAttendanceModal 
+        isOpen={isManageModalOpen}
+        onClose={() => {
+          setIsManageModalOpen(false);
+          setEditRecord(null);
+        }}
+        editRecord={editRecord}
+        employees={employees}
+        triggerToast={triggerToast}
+        onSuccess={loadLogs}
+      />
 
     </div>
   );
