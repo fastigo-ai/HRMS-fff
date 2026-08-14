@@ -4,7 +4,7 @@ import {
   FileText, Download, Briefcase, IndianRupee,
   Calendar, CheckCircle, Search, Mail,
   MessageCircle, Star, Plus, MoreVertical,
-  Activity, ArrowUpRight, Trash2, Edit2
+  Activity, ArrowUpRight, Trash2, Edit2, List, Columns
 } from 'lucide-react';
 import { useAuthStore } from '../../../store/authStore';
 import { useUiStore } from '../../../store/uiStore';
@@ -18,6 +18,7 @@ import LeadList from '../components/SalesCRM/LeadList';
 import LeadDetailsModal from '../components/SalesCRM/LeadDetailsModal';
 import AddLeadModal from '../components/SalesCRM/AddLeadModal';
 import QuotationForm from '../components/SalesCRM/QuotationForm';
+import PipelineBoard from '../components/SalesCRM/PipelineBoard';
 
 export default function SalesCRM() {
   const { profileData } = useAuthStore();
@@ -32,15 +33,7 @@ export default function SalesCRM() {
 
   const { leads, activities, quotations, analytics, isLoading, isError, mutateLeads, mutateQuotations } = useSalesData();
 
-  const isSalesRole = profileData?.role === 'salesperson' ||
-                      profileData?.position?.toLowerCase().includes('sale') ||
-                      profileData?.department?.toLowerCase().includes('sale') ||
-                      profileData?.role === 'manager' || 
-                      profileData?.role === 'hr_admin';
-
-  if (!isSalesRole) {
-    return <Navigate to="/employee/dashboard" replace />;
-  }
+  // Removed role restriction to grant full access
 
   // Dynamic Data Computation
   const dashboardMetrics = {
@@ -122,6 +115,7 @@ export default function SalesCRM() {
         {[
           { id: 'dashboard', label: 'Dashboard', icon: Activity },
           { id: 'leads', label: 'Lead Management', icon: Target },
+          { id: 'pipeline', label: 'Pipeline', icon: Columns },
           { id: 'customers', label: 'Customers', icon: Users },
           { id: 'followups', label: 'Follow-ups', icon: PhoneCall },
           { id: 'quotations', label: 'Quotations & Invoices', icon: FileText }
@@ -153,6 +147,10 @@ export default function SalesCRM() {
 
             {activeTab === 'leads' && (
               <LeadList leads={leads} onRowClick={setSelectedLead} onAddLeadClick={() => setShowAddLead(true)} />
+            )}
+
+            {activeTab === 'pipeline' && (
+              <PipelineBoard leads={leads} onLeadClick={setSelectedLead} onLeadUpdated={() => mutateLeads()} />
             )}
 
         {activeTab === 'customers' && (
