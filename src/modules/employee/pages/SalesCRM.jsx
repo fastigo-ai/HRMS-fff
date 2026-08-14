@@ -11,6 +11,7 @@ import { useUiStore } from '../../../store/uiStore';
 import { Navigate } from 'react-router-dom';
 import { useSalesData } from '../../../hooks/useSalesData';
 import { salesService } from '../../../services/salesService';
+import { downloadQuotationPDF } from '../../../utils/pdfGenerator';
 
 import LeadDashboard from '../components/SalesCRM/LeadDashboard';
 import LeadList from '../components/SalesCRM/LeadList';
@@ -327,6 +328,9 @@ export default function SalesCRM() {
                           </span>
                         </td>
                         <td className="py-4 px-4 text-right flex justify-end gap-2">
+                          <button onClick={() => downloadQuotationPDF(q)} className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg transition border border-slate-200 dark:border-slate-700" title="Download PDF">
+                            <Download className="w-4 h-4" />
+                          </button>
                           <button onClick={() => setEditQuotationData(q)} className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg transition border border-slate-200 dark:border-slate-700" title="Edit">
                             <Edit2 className="w-4 h-4" />
                           </button>

@@ -12,7 +12,8 @@ import {
   IndianRupee,
   Bell,
   Clock,
-  Settings
+  Settings,
+  Target
 } from 'lucide-react';
 
 import { useAuthStore } from '../../store/authStore';
@@ -33,6 +34,7 @@ export default function PMSidebar({
     { id: 'pm-approvals', label: 'Approvals Hub', icon: ClipboardCheck },
     { id: 'pm-milestones', label: 'Milestones Gantt', icon: Milestone },
     { id: 'pm-holidays', label: 'Holiday Calendar', icon: CalendarDays },
+    { id: 'pm-sales-crm', label: 'Sales CRM Hub', icon: Target },
     { id: 'pm-sales-audit', label: 'Sales Audit', icon: TrendingUp },
     { id: 'pm-payroll', label: 'Payroll', icon: IndianRupee },
     { id: 'pm-notifications', label: 'Notifications', icon: Bell },

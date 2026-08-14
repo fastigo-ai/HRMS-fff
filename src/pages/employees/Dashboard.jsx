@@ -85,14 +85,55 @@ const CircularProgress = ({
   );
 };
 
+const PIPELINE_STAGES = [
+  {
+    id: "leads",
+    title: "1. Leads Prospecting",
+    validStatuses: ["Lead"],
+    showPhone: true,
+    showGps: false,
+    nextStatus: "Contacted",
+    nextLabel: "Contact"
+  },
+  {
+    id: "outreach",
+    title: "2. Outreach Done",
+    validStatuses: ["Contacted"],
+    showPhone: true,
+    showGps: true,
+    nextStatus: "Qualified",
+    nextLabel: "Qualify"
+  },
+  {
+    id: "qualified",
+    title: "3. Qualified SQLs",
+    validStatuses: ["Qualified", "Meeting Scheduled"],
+    showPhone: false,
+    showGps: true,
+    nextStatus: "Negotiation",
+    nextLabel: "Negotiate"
+  },
+  {
+    id: "negotiation",
+    title: "4. Negotiations & Won",
+    validStatuses: ["Negotiation", "Closed Won"],
+    showPhone: false,
+    showGps: false,
+    nextStatus: "Closed Won",
+    nextLabel: "Mark Won"
+  }
+];
+
 export default function Dashboard({
   setCurrentTab,
-  leaveBalances,
-  tasks,
-  notifications,
+  leaveBalances = [],
+  tasks = [],
+  notifications = [],
+  initialPortal = "hr",
   clockedIn,
   toggleClockInOut,
   userRole,
+  isReadOnly = false,
   attendanceStats = {
     presentDays: 0,
     lateMarks: 0,
@@ -129,7 +170,7 @@ export default function Dashboard({
     loadDashboardData();
   }, []);
 
-  const [activePortal, setActivePortal] = useState("hr"); // 'hr' | 'sales'
+  const [activePortal, setActivePortal] = useState(initialPortal); // 'hr' | 'sales'
   const [salesRole, setSalesRole] = useState(() => {
     if (profileData?.position?.toLowerCase().includes("manager") || profileData?.position?.toLowerCase().includes("bdm")) {
       return "bdm";
@@ -171,6 +212,12 @@ export default function Dashboard({
 
   // Lead modal and creations
   const [showLeadModal, setShowLeadModal] = useState(false);
+  
+  // Lead Details & Update Modal
+  const [showLeadDetailsModal, setShowLeadDetailsModal] = useState(false);
+  const [selectedLead, setSelectedLead] = useState(null);
+  const [leadUpdateInput, setLeadUpdateInput] = useState({});
+
   const [newLead, setNewLead] = useState({
     name: "",
     company: "",
@@ -242,6 +289,30 @@ export default function Dashboard({
       );
     } catch (err) {
       triggerToast("Failed to register lead in database.", "error");
+    }
+  };
+
+  const handleUpdateLead = async (e) => {
+    e.preventDefault();
+    try {
+      const updated = await salesService.updateLead(selectedLead._id || selectedLead.id, leadUpdateInput);
+      setLeads((prev) => prev.map((l) => (l._id || l.id) === (updated._id || updated.id) ? updated : l));
+      setShowLeadDetailsModal(false);
+      triggerToast("Lead details updated successfully!", "success");
+    } catch (err) {
+      triggerToast("Failed to update lead.", "error");
+    }
+  };
+
+  const handleDeleteLead = async () => {
+    if (!window.confirm("Are you sure you want to delete this lead?")) return;
+    try {
+      await salesService.deleteLead(selectedLead._id || selectedLead.id);
+      setLeads((prev) => prev.filter((l) => (l._id || l.id) !== (selectedLead._id || selectedLead.id)));
+      setShowLeadDetailsModal(false);
+      triggerToast("Lead deleted successfully.", "success");
+    } catch (err) {
+      triggerToast("Failed to delete lead.", "error");
     }
   };
 
@@ -488,7 +559,6 @@ export default function Dashboard({
             </div>
           </div>
 
-          {/* Grid Quick Indicators */}
           {/* Grid Quick Indicators */}
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
             {/* Card 1: Clock state */}
@@ -787,8 +857,20 @@ export default function Dashboard({
       )}
 
       {/* PORTAL VIEW 2: SALES CRM HUB */}
-      {activePortal === "sales" && (
-        <div className="space-y-6 animate-in fade-in duration-200">
+      {activePortal === "sales" && (() => {
+        const bdaCallsDone = activities.filter(a => a.type === 'call').length;
+        const bdaMeetingsDone = activities.filter(a => a.type === 'meeting' || String(a.description).toLowerCase().includes('meeting') || String(a.outcome).toLowerCase().includes('meeting')).length;
+        const bdaQualifiedDone = leads.filter(l => ['Qualified', 'Meeting Scheduled', 'Negotiation', 'Closed Won'].includes(l.status)).length;
+        const bdaOutreachDone = activities.length;
+
+        const bdmDealsClosed = leads.filter(l => l.status === 'Closed Won').length;
+        const bdmRevenueAchieved = leads.filter(l => l.status === 'Closed Won').reduce((sum, l) => sum + (l.amount || 0), 0);
+        const bdmPipelineValue = leads.filter(l => l.status !== 'Closed Lost' && l.status !== 'Closed Won').reduce((sum, l) => sum + (l.amount || 0), 0);
+        const totalCompletedOrLost = leads.filter(l => l.status === 'Closed Won' || l.status === 'Closed Lost').length;
+        const bdmRetention = totalCompletedOrLost > 0 ? Math.round((bdmDealsClosed / totalCompletedOrLost) * 100) : 100;
+
+        return (
+          <div className="space-y-6 animate-in fade-in duration-200">
           {/* Top Persona Selection Banner */}
           <div className="p-6 bg-slate-950 border border-slate-800 rounded-3xl relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shadow-xl">
             <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-600/5 rounded-full blur-3xl"></div>
@@ -837,29 +919,29 @@ export default function Dashboard({
             {salesRole === "bda" ? (
               <>
                 <CircularProgress
-                  value={42}
-                  max={50}
-                  label="Daily Calls Target"
+                  value={bdaCallsDone}
+                  max={Math.max(50, bdaCallsDone + 10)}
+                  label="Daily Calls Tracked"
                   colorClass="stroke-indigo-600"
                   icon={Phone}
                 />
                 <CircularProgress
-                  value={78}
-                  max={100}
-                  label="Outreach Multipliers"
+                  value={bdaOutreachDone}
+                  max={Math.max(100, bdaOutreachDone + 20)}
+                  label="Outreach Interactions"
                   colorClass="stroke-sky-500"
                   icon={MessageSquare}
                 />
                 <CircularProgress
-                  value={12}
-                  max={15}
+                  value={bdaQualifiedDone}
+                  max={Math.max(15, bdaQualifiedDone + 5)}
                   label="Qualified Leads Generated"
                   colorClass="stroke-emerald-500"
                   icon={UserPlus}
                 />
                 <CircularProgress
-                  value={4}
-                  max={5}
+                  value={bdaMeetingsDone}
+                  max={Math.max(5, bdaMeetingsDone + 2)}
                   label="Meetings Booked"
                   colorClass="stroke-amber-500"
                   icon={Calendar}
@@ -868,32 +950,32 @@ export default function Dashboard({
             ) : (
               <>
                 <CircularProgress
-                  value={12.5}
-                  max={15}
+                  value={bdmRevenueAchieved}
+                  max={Math.max(100000, bdmRevenueAchieved * 1.5)}
                   label="Revenue Achieved"
                   colorClass="stroke-emerald-500"
                   icon={DollarSign}
-                  suffix="L"
+                  suffix=""
                 />
                 <CircularProgress
-                  value={8}
-                  max={10}
-                  label="Corporate Deals Closed"
+                  value={bdmDealsClosed}
+                  max={Math.max(10, bdmDealsClosed + 5)}
+                  label="Deals Won"
                   colorClass="stroke-indigo-600"
                   icon={Award}
                 />
                 <CircularProgress
-                  value={45}
-                  max={60}
+                  value={bdmPipelineValue}
+                  max={Math.max(500000, bdmPipelineValue * 1.2)}
                   label="Pipeline Contract Value"
                   colorClass="stroke-sky-500"
                   icon={TrendingUp}
-                  suffix="L"
+                  suffix=""
                 />
                 <CircularProgress
-                  value={96}
+                  value={bdmRetention}
                   max={100}
-                  label="Client Retention Rate"
+                  label="Win Rate"
                   colorClass="stroke-amber-500"
                   icon={Users}
                   suffix="%"
@@ -917,281 +999,137 @@ export default function Dashboard({
               </div>
 
               <div className="flex items-center gap-3 shrink-0">
-                <button
-                  onClick={() => setShowDwrModal(true)}
-                  className="px-4 py-2.5 text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 dark:text-slate-300 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 transition flex items-center gap-1.5 shadow-xs"
-                >
-                  <FileText className="w-4 h-4 text-indigo-500" />
-                  Submit Daily DWR
-                </button>
-                <button
-                  onClick={() => setShowLeadModal(true)}
-                  className="px-4 py-2.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition flex items-center gap-1.5 shadow shadow-indigo-600/15"
-                >
-                  <Plus className="w-4 h-4" />
-                  Register Prospect
-                </button>
+                {!isReadOnly && (
+                  <button
+                    onClick={() => setShowDwrModal(true)}
+                    className="px-4 py-2.5 text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 dark:text-slate-300 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 transition flex items-center gap-1.5 shadow-xs"
+                  >
+                    <FileText className="w-4 h-4 text-indigo-500" />
+                    Submit Daily DWR
+                  </button>
+                )}
+                {!isReadOnly && (
+                  <button
+                    onClick={() => setShowLeadModal(true)}
+                    className="px-4 py-2.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition flex items-center gap-1.5 shadow shadow-indigo-600/15"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Register Prospect
+                  </button>
+                )}
               </div>
             </div>
 
             {/* Pipeline Columns */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* Column 1: Leads */}
-              <div className="bg-slate-50/50 dark:bg-slate-900/10 border border-slate-100 dark:border-slate-900 p-4 rounded-2xl flex flex-col space-y-4 min-h-[350px]">
-                <div className="flex justify-between items-center pb-2 border-b border-slate-150 dark:border-slate-900">
-                  <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">
-                    1. Leads Prospecting
-                  </span>
-                  <span className="text-[9px] font-bold bg-slate-200 dark:bg-slate-900 text-slate-600 px-2 py-0.5 rounded">
-                    {leads.filter((l) => l.status === "Lead").length}
-                  </span>
-                </div>
+              {PIPELINE_STAGES.map((stage) => {
+                const stageLeads = leads.filter((l) => stage.validStatuses.includes(l.status));
+                return (
+                  <div key={stage.id} className="bg-slate-50/50 dark:bg-slate-900/10 border border-slate-100 dark:border-slate-900 p-4 rounded-2xl flex flex-col space-y-4 min-h-[350px]">
+                    <div className="flex justify-between items-center pb-2 border-b border-slate-150 dark:border-slate-900">
+                      <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">
+                        {stage.title}
+                      </span>
+                      <span className="text-[9px] font-bold bg-slate-200 dark:bg-slate-900 text-slate-600 px-2 py-0.5 rounded">
+                        {stageLeads.length}
+                      </span>
+                    </div>
 
-                <div className="space-y-3 flex-1 overflow-y-auto">
-                  {leads
-                    .filter((l) => l.status === "Lead")
-                    .map((lead) => (
-                      <div
-                        key={lead._id || lead.id}
-                        className="p-3 bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-xl shadow-xs space-y-2 hover:shadow transition"
-                      >
-                        <div className="flex justify-between items-center">
-                          <span className="text-[9px] font-bold text-sky-500 bg-sky-50 dark:bg-sky-950/40 px-2 py-0.5 rounded border border-sky-100/40">
-                            {lead.source}
-                          </span>
-                          <span
-                            className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded ${lead.priority === "High" ? "bg-rose-50 text-rose-600 border border-rose-100" : "bg-slate-50 text-slate-500 border"}`}
-                          >
-                            {lead.priority}
-                          </span>
-                        </div>
-                        <h4 className="text-xs font-bold text-slate-800 dark:text-white">
-                          {lead.name}
-                        </h4>
-                        <p className="text-[10px] text-slate-400 font-semibold">
-                          {lead.company}
-                        </p>
-
-                        <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-900/50">
-                          <button
-                            onClick={() => startSimulatedCall(lead)}
-                            className="p-1.5 bg-indigo-50 text-indigo-600 dark:bg-indigo-950/30 rounded hover:bg-indigo-100 transition"
-                            title="Call Prospect"
-                          >
-                            <Phone className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() =>
-                              advanceLeadStatus(lead._id || lead.id, "Contacted")
-                            }
-                            className="text-[9px] font-bold text-indigo-500 hover:text-indigo-700 flex items-center gap-0.5"
-                          >
-                            Contact <ChevronRight className="w-3 h-3" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
-
-              {/* Column 2: Contacted */}
-              <div className="bg-slate-50/50 dark:bg-slate-900/10 border border-slate-100 dark:border-slate-900 p-4 rounded-2xl flex flex-col space-y-4 min-h-[350px]">
-                <div className="flex justify-between items-center pb-2 border-b border-slate-150 dark:border-slate-900">
-                  <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">
-                    2. Outreach Done
-                  </span>
-                  <span className="text-[9px] font-bold bg-slate-200 dark:bg-slate-900 text-slate-600 px-2 py-0.5 rounded">
-                    {leads.filter((l) => l.status === "Contacted").length}
-                  </span>
-                </div>                <div className="space-y-3 flex-1 overflow-y-auto">
-                  {leads
-                    .filter((l) => l.status === "Contacted")
-                    .map((lead) => (
-                      <div
-                        key={lead._id || lead.id}
-                        className="p-3 bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-xl shadow-xs space-y-2 hover:shadow transition"
-                      >
-                        <div className="flex justify-between items-center">
-                          <span className="text-[9px] font-bold text-sky-500 bg-sky-50 dark:bg-sky-950/40 px-2 py-0.5 rounded border border-sky-100/40">
-                            {lead.source}
-                          </span>
-                          <span
-                            className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded ${lead.priority === "High" ? "bg-rose-50 text-rose-600 border border-rose-100" : "bg-slate-50 text-slate-500 border"}`}
-                          >
-                            {lead.priority}
-                          </span>
-                        </div>
-                        <h4 className="text-xs font-bold text-slate-800 dark:text-white">
-                          {lead.name}
-                        </h4>
-                        <p className="text-[10px] text-slate-400 font-semibold">
-                          {lead.company}
-                        </p>
-
-                        <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-900/50">
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              onClick={() => startSimulatedCall(lead)}
-                              className="p-1.5 bg-indigo-50 text-indigo-650 dark:bg-indigo-950/30 rounded hover:bg-indigo-100 transition"
-                              title="Call Prospect"
+                    <div className="space-y-3 flex-1 overflow-y-auto">
+                      {stageLeads.map((lead) => (
+                        <div
+                          key={lead._id || lead.id}
+                          onClick={() => {
+                            setSelectedLead(lead);
+                            setLeadUpdateInput({
+                              status: lead.status,
+                              next_followup: lead.next_followup || "",
+                              priority: lead.priority || "Medium",
+                              notes: lead.notes || "",
+                              amount: lead.amount || 0
+                            });
+                            setShowLeadDetailsModal(true);
+                          }}
+                          className={`p-3 border rounded-xl shadow-xs space-y-2 hover:shadow transition cursor-pointer ${lead.status === "Closed Won" ? "bg-emerald-50/30 border-emerald-100 dark:bg-emerald-950/10 dark:border-emerald-900/40" : "bg-white dark:bg-slate-950 border-slate-100 dark:border-slate-850"}`}
+                        >
+                          <div className="flex justify-between items-center">
+                            <span className="text-[9px] font-bold text-sky-500 bg-sky-50 dark:bg-sky-950/40 px-2 py-0.5 rounded border border-sky-100/40">
+                              {stage.id === "negotiation" ? "Proposal" : lead.source}
+                            </span>
+                            <span
+                              className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded ${lead.status === "Closed Won" ? "bg-emerald-100 text-emerald-700" : stage.id === "qualified" ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : lead.priority === "High" ? "bg-rose-50 text-rose-600 border border-rose-100" : "bg-slate-50 text-slate-500 border"}`}
                             >
-                              <Phone className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => triggerGpsCheckin(lead)}
-                              className="p-1.5 bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 rounded hover:bg-emerald-100 transition"
-                              title="GPS Client Check-in"
-                            >
-                              <Navigation className="w-3.5 h-3.5" />
-                            </button>
+                              {lead.status === "Closed Won" ? lead.status : stage.id === "qualified" ? "SQL" : lead.priority}
+                            </span>
                           </div>
-                          <button
-                            onClick={() =>
-                              advanceLeadStatus(lead._id || lead.id, "Qualified")
-                            }
-                            className="text-[9px] font-bold text-indigo-500 hover:text-indigo-700 flex items-center gap-0.5"
-                          >
-                            Qualify <ChevronRight className="w-3 h-3" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
+                          <h4 className="text-xs font-bold text-slate-800 dark:text-white">
+                            {lead.name}
+                          </h4>
+                          <p className="text-[10px] text-slate-400 font-semibold">
+                            {lead.company}
+                          </p>
 
-              {/* Column 3: Qualified */}
-              <div className="bg-slate-50/50 dark:bg-slate-900/10 border border-slate-100 dark:border-slate-900 p-4 rounded-2xl flex flex-col space-y-4 min-h-[350px]">
-                <div className="flex justify-between items-center pb-2 border-b border-slate-150 dark:border-slate-900">
-                  <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">
-                    3. Qualified SQLs
-                  </span>
-                  <span className="text-[9px] font-bold bg-slate-200 dark:bg-slate-900 text-slate-600 px-2 py-0.5 rounded">
-                    {
-                      leads.filter(
-                        (l) =>
-                          l.status === "Qualified" ||
-                          l.status === "Meeting Scheduled",
-                      ).length
-                    }
-                  </span>
-                </div>
-
-                <div className="space-y-3 flex-1 overflow-y-auto">
-                  {leads
-                    .filter(
-                      (l) =>
-                        l.status === "Qualified" ||
-                        l.status === "Meeting Scheduled",
-                    )
-                    .map((lead) => (
-                      <div
-                        key={lead._id || lead.id}
-                        className="p-3 bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-xl shadow-xs space-y-2 hover:shadow transition"
-                      >
-                        <div className="flex justify-between items-center">
-                          <span className="text-[9px] font-bold text-sky-500 bg-sky-50 dark:bg-sky-950/40 px-2 py-0.5 rounded border border-sky-100/40">
-                            {lead.source}
-                          </span>
-                          <span
-                            className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 border border-emerald-100`}
-                          >
-                            SQL
-                          </span>
-                        </div>
-                        <h4 className="text-xs font-bold text-slate-800 dark:text-white">
-                          {lead.name}
-                        </h4>
-                        <p className="text-[10px] text-slate-400 font-semibold">
-                          {lead.company}
-                        </p>
-                        <div className="p-2 bg-slate-50 dark:bg-slate-900 rounded text-[9px] text-slate-500 font-medium">
-                          <strong>Pipeline:</strong>{" "}
-                          {lead.status === "Qualified"
-                            ? "Qualification verified"
-                            : "Meeting set: " + lead.next_followup}
-                        </div>
-
-                        <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-900/50">
-                          <button
-                            onClick={() => triggerGpsCheckin(lead)}
-                            className="p-1.5 bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 rounded hover:bg-emerald-100 transition"
-                            title="GPS Check-in"
-                          >
-                            <Navigation className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() =>
-                              advanceLeadStatus(lead._id || lead.id, "Negotiation")
-                            }
-                            className="text-[9px] font-bold text-indigo-500 hover:text-indigo-700 flex items-center gap-0.5"
-                          >
-                            Negotiate <ChevronRight className="w-3 h-3" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
-
-              {/* Column 4: Negotiation / Closed */}
-              <div className="bg-slate-50/50 dark:bg-slate-900/10 border border-slate-100 dark:border-slate-900 p-4 rounded-2xl flex flex-col space-y-4 min-h-[350px]">
-                <div className="flex justify-between items-center pb-2 border-b border-slate-150 dark:border-slate-900">
-                  <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">
-                    4. Negotiations & Won
-                  </span>
-                  <span className="text-[9px] font-bold bg-slate-200 dark:bg-slate-900 text-slate-600 px-2 py-0.5 rounded">
-                    {
-                      leads.filter(
-                        (l) => l.status === "Negotiation" || l.status === "Won",
-                      ).length
-                    }
-                  </span>
-                </div>
-
-                <div className="space-y-3 flex-1 overflow-y-auto">
-                  {leads
-                    .filter(
-                      (l) => l.status === "Negotiation" || l.status === "Won",
-                    )
-                    .map((lead) => (
-                      <div
-                        key={lead._id || lead.id}
-                        className={`p-3 border rounded-xl shadow-xs space-y-2 hover:shadow transition ${lead.status === "Won" ? "bg-emerald-50/30 border-emerald-100 dark:bg-emerald-950/10 dark:border-emerald-900/40" : "bg-white dark:bg-slate-950 border-slate-100 dark:border-slate-850"}`}
-                      >
-                        <div className="flex justify-between items-center">
-                          <span className="text-[9px] font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100/40">
-                            Proposal
-                          </span>
-                          <span
-                            className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded ${lead.status === "Won" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}
-                          >
-                            {lead.status}
-                          </span>
-                        </div>
-                        <h4 className="text-xs font-bold text-slate-800 dark:text-white">
-                          {lead.name}
-                        </h4>
-                        <p className="text-[10px] text-slate-400 font-semibold">
-                          {lead.company}
-                        </p>
-
-                        <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-900/50">
-                          <span className="text-[9px] text-slate-400 font-bold block">
-                            Follow-up: {lead.next_followup}
-                          </span>
-                          {lead.status !== "Won" && (
-                            <button
-                              onClick={() => advanceLeadStatus(lead._id || lead.id, "Won")}
-                              className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[9px] font-bold shadow-xs cursor-pointer"
-                            >
-                              Mark Won
-                            </button>
+                          {lead.amount > 0 && (
+                            <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mt-1.5 flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                              ₹{lead.amount.toLocaleString()}
+                            </p>
                           )}
+                          
+                          {(lead.status === "Qualified" || lead.status === "Meeting Scheduled") && (
+                            <div className="p-2 bg-slate-50 dark:bg-slate-900 rounded text-[9px] text-slate-500 font-medium">
+                              <strong>Pipeline:</strong>{" "}
+                              {lead.status === "Qualified"
+                                ? "Qualification verified"
+                                : "Meeting set: " + lead.next_followup}
+                            </div>
+                          )}
+
+                          <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-900/50">
+                            {stage.id === "negotiation" ? (
+                              <span className="text-[9px] text-slate-400 font-bold block">
+                                Follow-up: {lead.next_followup}
+                              </span>
+                            ) : (
+                              !isReadOnly && (
+                                <div className="flex items-center gap-1.5">
+                                  {stage.showPhone && (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); startSimulatedCall(lead); }}
+                                      className="p-1.5 bg-indigo-50 text-indigo-650 dark:bg-indigo-950/30 rounded hover:bg-indigo-100 transition"
+                                      title="Call Prospect"
+                                    >
+                                      <Phone className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                  {stage.showGps && (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); triggerGpsCheckin(lead); }}
+                                      className="p-1.5 bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 rounded hover:bg-emerald-100 transition"
+                                      title="GPS Client Check-in"
+                                    >
+                                      <Navigation className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                </div>
+                              )
+                            )}
+                            
+                            {!isReadOnly && lead.status !== "Closed Won" && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); advanceLeadStatus(lead._id || lead.id, stage.nextStatus); }}
+                                className={stage.id === "negotiation" ? "px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[9px] font-bold shadow-xs cursor-pointer" : "text-[9px] font-bold text-indigo-500 hover:text-indigo-700 flex items-center gap-0.5"}
+                              >
+                                {stage.nextLabel} {stage.id !== "negotiation" && <ChevronRight className="w-3 h-3" />}
+                              </button>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -1442,6 +1380,145 @@ export default function Dashboard({
                 <p className="text-[9px] text-emerald-400 font-semibold">
                   {gpsStatus.accuracy}
                 </p>
+              </div>
+            </div>
+          )}
+
+          {/* Lead Details & Update Modal */}
+          {showLeadDetailsModal && selectedLead && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 dark:bg-slate-950/60 backdrop-blur-sm px-4">
+              <div className="glass-panel w-full max-w-lg bg-white dark:bg-slate-950 border border-slate-150 dark:border-slate-800 rounded-3xl shadow-2xl p-6 relative animate-in fade-in-50 zoom-in-95 duration-200">
+                <button
+                  onClick={() => setShowLeadDetailsModal(false)}
+                  className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-650 rounded-lg"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                <div className="flex items-center gap-2 mb-6">
+                  <UserPlus className="w-5.5 h-5.5 text-indigo-500" />
+                  <h3 className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">
+                    Lead Details
+                  </h3>
+                </div>
+                
+                {/* Read-only Information */}
+                <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-100 dark:border-slate-850">
+                  <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{selectedLead.name}</h4>
+                  <p className="text-xs text-slate-500 mb-3">{selectedLead.company}</p>
+                  
+                  <div className="grid grid-cols-2 gap-2 text-xs font-semibold text-slate-500">
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-3.5 h-3.5 text-slate-400" /> {selectedLead.phone || "N/A"}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-3.5 h-3.5 text-slate-400" /> {selectedLead.email || "N/A"}
+                    </div>
+                  </div>
+                </div>
+
+                <form
+                  onSubmit={handleUpdateLead}
+                  className="space-y-4 text-xs font-semibold text-slate-500"
+                >
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-slate-400 block mb-1 uppercase tracking-wider text-[9px] font-bold">
+                        Pipeline Status
+                      </label>
+                      <select
+                        value={leadUpdateInput.status}
+                        onChange={(e) => setLeadUpdateInput((prev) => ({ ...prev, status: e.target.value }))}
+                        disabled={isReadOnly}
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-850 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-900 dark:text-white font-medium appearance-none disabled:opacity-70 disabled:cursor-not-allowed"
+                      >
+                        <option value="Lead">Lead</option>
+                        <option value="Contacted">Contacted</option>
+                        <option value="Qualified">Qualified</option>
+                        <option value="Meeting Scheduled">Meeting Scheduled</option>
+                        <option value="Negotiation">Negotiation</option>
+                        <option value="Closed Won">Closed Won</option>
+                        <option value="Closed Lost">Closed Lost</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-slate-400 block mb-1 uppercase tracking-wider text-[9px] font-bold">
+                        Priority
+                      </label>
+                      <select
+                        value={leadUpdateInput.priority}
+                        onChange={(e) => setLeadUpdateInput((prev) => ({ ...prev, priority: e.target.value }))}
+                        disabled={isReadOnly}
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-850 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-900 dark:text-white font-medium appearance-none disabled:opacity-70 disabled:cursor-not-allowed"
+                      >
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-slate-400 block mb-1 uppercase tracking-wider text-[9px] font-bold">
+                      Next Follow-up Date/Time
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 2026-08-15 10:00 AM"
+                      value={leadUpdateInput.next_followup}
+                      onChange={(e) => setLeadUpdateInput((prev) => ({ ...prev, next_followup: e.target.value }))}
+                      readOnly={isReadOnly}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-850 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-900 dark:text-white font-medium disabled:opacity-70 disabled:cursor-not-allowed"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-slate-400 block mb-1 uppercase tracking-wider text-[9px] font-bold">
+                      Deal Value (₹)
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="e.g. 50000"
+                      value={leadUpdateInput.amount || ''}
+                      onChange={(e) => setLeadUpdateInput((prev) => ({ ...prev, amount: Number(e.target.value) }))}
+                      readOnly={isReadOnly}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-850 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-900 dark:text-white font-medium disabled:opacity-70 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-slate-400 block mb-1 uppercase tracking-wider text-[9px] font-bold">
+                      Lead Notes
+                    </label>
+                    <textarea
+                      placeholder="Add conversation notes here..."
+                      rows="3"
+                      value={leadUpdateInput.notes}
+                      onChange={(e) => setLeadUpdateInput((prev) => ({ ...prev, notes: e.target.value }))}
+                      readOnly={isReadOnly}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-850 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-900 dark:text-white font-medium resize-none disabled:opacity-70 disabled:cursor-not-allowed"
+                    ></textarea>
+                  </div>
+
+                  {!isReadOnly && (
+                    <div className="flex gap-3 pt-4 border-t border-slate-100 dark:border-slate-900">
+                      <button
+                        type="button"
+                        onClick={handleDeleteLead}
+                        className="flex-1 py-3 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-900/50 rounded-xl transition shadow-xs"
+                      >
+                        Delete Lead
+                      </button>
+                      <button
+                        type="submit"
+                        className="flex-1 py-3 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition shadow shadow-indigo-600/20"
+                      >
+                        Save Changes
+                      </button>
+                    </div>
+                  )}
+                </form>
               </div>
             </div>
           )}
@@ -1746,7 +1823,8 @@ export default function Dashboard({
             </div>
           )}
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

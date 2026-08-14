@@ -12,6 +12,7 @@ export default function AddLeadModal({ initialData, onClose, onLeadAdded }) {
     priority: initialData?.priority || 'Medium',
     industry: initialData?.industry || 'Technology',
     budget: initialData?.budget || '',
+    amount: initialData?.amount || '',
     address: initialData?.address || '',
     notes: initialData?.notes || '',
     next_followup: initialData?.next_followup || ''
@@ -39,6 +40,7 @@ export default function AddLeadModal({ initialData, onClose, onLeadAdded }) {
         priority: formData.priority,
         industry: formData.industry,
         budget: formData.budget,
+        amount: Number(formData.amount) || 0,
         address: formData.address,
         next_followup: formData.next_followup,
         notes: formData.notes
@@ -126,6 +128,10 @@ export default function AddLeadModal({ initialData, onClose, onLeadAdded }) {
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Budget Estimate</label>
               <input name="budget" value={formData.budget} onChange={handleChange} type="text" className="w-full border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm bg-transparent dark:text-white focus:outline-none focus:border-indigo-500" placeholder="₹5.0L" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Deal Value (₹)</label>
+              <input name="amount" value={formData.amount} onChange={handleChange} type="number" className="w-full border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm bg-transparent dark:text-white focus:outline-none focus:border-indigo-500" placeholder="e.g. 50000" />
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Next Follow-up</label>

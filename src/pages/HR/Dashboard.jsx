@@ -322,7 +322,7 @@ export default function HRDashboard({
 
           {/* Date block */}
           <div className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 dark:text-slate-350 dark:bg-slate-950 dark:border-slate-800 rounded-xl shadow-sm">
-            <span>📅 Monday, Oct 23, 2023</span>
+            <span>📅 {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' })}</span>
           </div>
         </div>
       </div>

@@ -63,6 +63,7 @@ const LazyManagerMilestones = lazyWithRetry(() => import('../modules/manager/pag
 const LazyManagerProfile = lazyWithRetry(() => import('../modules/manager/pages/Profile'));
 const LazyHRSalesAudit = lazyWithRetry(() => import('../modules/hr/pages/SalesAudit'));
 const LazyManagerSalesAudit = lazyWithRetry(() => import('../modules/manager/pages/SalesAudit'));
+const LazyManagerSalesCRM = lazyWithRetry(() => import('../modules/manager/pages/SalesCRM'));
 const LazyEmployeeHolidays = lazyWithRetry(() => import('../modules/employee/pages/Holidays'));
 const LazyHRHolidays = lazyWithRetry(() => import('../modules/hr/pages/Holidays'));
 const LazyHRCompanyDetails = lazyWithRetry(() => import('../modules/hr/pages/CompanyDetails'));
@@ -186,6 +187,7 @@ export const appRouter = createBrowserRouter([
       { path: 'tasks', element: <PageSuspense><LazyManagerTasks /></PageSuspense> },
       { path: 'approvals', element: <PageSuspense><LazyManagerApprovals /></PageSuspense> },
       { path: 'milestones', element: <PageSuspense><LazyManagerMilestones /></PageSuspense> },
+      { path: 'sales-crm', element: <PageSuspense><LazyManagerSalesCRM /></PageSuspense> },
       { path: 'sales-audit', element: <PageSuspense><LazyManagerSalesAudit /></PageSuspense> },
       { path: 'profile', element: <PageSuspense><LazyManagerProfile /></PageSuspense> },
       { path: 'holidays', element: <PageSuspense><LazyManagerHolidays /></PageSuspense> },

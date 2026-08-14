@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Plus, Trash2, Save, Download } from 'lucide-react';
 import { salesService } from '../../../../services/salesService';
+import { downloadQuotationPDF } from '../../../../utils/pdfGenerator';
 
 export default function QuotationForm({ initialData, leads = [], onClose, onSaved }) {
   const [leadId, setLeadId] = useState(initialData?.lead?._id || initialData?.lead || '');
@@ -85,7 +86,9 @@ export default function QuotationForm({ initialData, leads = [], onClose, onSave
               <select value={leadId} onChange={e => setLeadId(e.target.value)} disabled={!!initialData} className="w-full border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm bg-transparent dark:text-white focus:outline-none focus:border-indigo-500">
                 <option value="">Select Lead...</option>
                 {leads.map(l => (
-                  <option key={l._id} value={l._id}>{l.company || l.name}</option>
+                  <option key={l._id} value={l._id}>
+                    {l.company ? `${l.company} - ${l.name}` : l.name}
+                  </option>
                 ))}
               </select>
             </div>
@@ -163,7 +166,22 @@ export default function QuotationForm({ initialData, leads = [], onClose, onSave
         </div>
 
         <div className="p-6 border-t border-slate-100 dark:border-slate-800 flex justify-between bg-slate-50 dark:bg-slate-900/50">
-          <button className="px-4 py-2 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition flex items-center gap-2 border border-slate-200 dark:border-slate-700">
+          <button 
+            type="button"
+            onClick={() => {
+              if (!leadId) return alert("Select a lead first to preview.");
+              downloadQuotationPDF({ 
+                quotationNumber: initialData?.quotationNumber || 'DRAFT', 
+                lead: leads.find(l => l._id === leadId), 
+                items, 
+                subtotal, 
+                tax, 
+                totalAmount, 
+                validUntil 
+              });
+            }}
+            className="px-4 py-2 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition flex items-center gap-2 border border-slate-200 dark:border-slate-700"
+          >
             <Download className="w-4 h-4"/> Preview PDF
           </button>
           <div className="flex gap-3">
